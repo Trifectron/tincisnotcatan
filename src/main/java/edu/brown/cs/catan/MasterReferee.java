@@ -21,6 +21,7 @@ import edu.brown.cs.board.Building;
 import edu.brown.cs.board.City;
 import edu.brown.cs.board.Intersection;
 import edu.brown.cs.board.Knight;
+import edu.brown.cs.board.Tile;
 import edu.brown.cs.gamestats.CatanStats;
 import edu.brown.cs.gamestats.GameStats;
 
@@ -464,6 +465,12 @@ public class MasterReferee implements Referee {
         && _turn.getMerchantFleetResource() != null) {
       Resource r = _turn.getMerchantFleetResource();
       rates.put(r, Math.min(rates.get(r), 2));
+    }
+    for (Tile t : _board.getTiles()) {
+      if (t.getMerchantOwner() == id && t.getType().getType() != null) {
+        Resource r = t.getType().getType();
+        rates.put(r, Math.min(rates.get(r), 2));
+      }
     }
     return rates;
   }
