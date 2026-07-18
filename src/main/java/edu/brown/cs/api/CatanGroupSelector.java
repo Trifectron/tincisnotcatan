@@ -26,6 +26,10 @@ public class CatanGroupSelector implements GroupSelector {
       "isDynamic";
   private static final String                IS_STANDARD          =
       "isStandard";
+  private static final String                IS_SEAFARERS         =
+      "isSeafarers";
+  private static final String                IS_CITIES_KNIGHTS    =
+      "isCitiesAndKnights";
   private static final String                GAME_REQUEST_ID      =
       "desiredGroupId";
   private static final String                GAME_NAME_IDENTIFIER = "groupName";
@@ -77,6 +81,9 @@ public class CatanGroupSelector implements GroupSelector {
     boolean isDecimal = Boolean.parseBoolean(u.getField(IS_DECIMAL));
     boolean isDynamic = Boolean.parseBoolean(u.getField(IS_DYNAMIC));
     boolean isStandard = Boolean.parseBoolean(u.getField(IS_STANDARD));
+    boolean isSeafarers = Boolean.parseBoolean(u.getField(IS_SEAFARERS));
+    boolean isCitiesAndKnights =
+        Boolean.parseBoolean(u.getField(IS_CITIES_KNIGHTS));
 
     // name the game
     String name = u.hasField(GAME_NAME_IDENTIFIER)
@@ -89,6 +96,8 @@ public class CatanGroupSelector implements GroupSelector {
     settings.addProperty("isDecimal", isDecimal);
     settings.addProperty("isDynamic", isDynamic);
     settings.addProperty("isStandard", isStandard);
+    settings.addProperty("isSeafarers", isSeafarers);
+    settings.addProperty("isCitiesAndKnights", isCitiesAndKnights);
 
     System.out.println("MAKING NEW GAME!");
     return new UserGroupBuilder(CatanAPI.class)

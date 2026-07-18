@@ -15,7 +15,10 @@ var TILE_TYPE = {
 	WHEAT: 4,
 	SHEEP: 5,
 	DESERT: 6,
-	SEA: 7
+	SEA: 7,
+	WATER: 8,
+	GOLD: 9,
+	DESERT_ISLAND: 10
 }
 
 var PORT = {
@@ -52,9 +55,10 @@ function Tile(coordinates, tileType, number, hasRobber, port) {
 	$("#board-viewport").append("<div class='hexagon-wrapper' id='" + this.id + "-wrapper'>"
 			+ "<div class='hexagon' id='" + this.id + "'></div></div>");
 
-	if (this.tileType === TILE_TYPE.DESERT) {
+	if (this.tileType === TILE_TYPE.DESERT || this.tileType === TILE_TYPE.DESERT_ISLAND
+			|| this.tileType === TILE_TYPE.GOLD) {
 		$("#" + this.id + "-wrapper").append("<div class='circle number-circle desert-circle'></div>");
-	} else if (this.tileType === TILE_TYPE.SEA) {
+	} else if (this.tileType === TILE_TYPE.SEA || this.tileType === TILE_TYPE.WATER) {
 		$("#" + this.id + "-wrapper").append("<div class='circle number-circle sea-circle'></div>");
 	} else {
 		$("#" + this.id + "-wrapper").append("<div class='circle number-circle number-circle-color'>"
@@ -103,7 +107,14 @@ Tile.prototype.draw = function(transX, transY, scale) {
 			element.addClass("sheep-color");
 			break;
 		case TILE_TYPE.DESERT:
+		case TILE_TYPE.DESERT_ISLAND:
 			element.addClass("desert-color");
+			break;
+		case TILE_TYPE.GOLD:
+			element.addClass("gold-color");
+			break;
+		case TILE_TYPE.WATER:
+			element.addClass("water-color");
 			break;
 		case TILE_TYPE.SEA:
 			element.css("background", "none");
@@ -242,7 +253,7 @@ Tile.prototype.draw = function(transX, transY, scale) {
  * @return whether this tile can have the robber placed on it
  */
 Tile.prototype.isRobbable = function() {
-	return !(this.tileType === TILE_TYPE.SEA || this.hasRobber); 
+	return !(this.tileType === TILE_TYPE.SEA || this.tileType === TILE_TYPE.WATER || this.hasRobber);
 }
 
 /*
@@ -344,6 +355,12 @@ function parseTileType(tileType) {
 			return TILE_TYPE.DESERT;
 		case "SEA":
 			return TILE_TYPE.SEA;
+		case "WATER":
+			return TILE_TYPE.WATER;
+		case "GOLD":
+			return TILE_TYPE.GOLD;
+		case "DESERT_ISLAND":
+			return TILE_TYPE.DESERT_ISLAND;
 		default:
 			return;
 	}

@@ -2,7 +2,9 @@ package edu.brown.cs.board;
 
 import static edu.brown.cs.board.TileType.BRICK;
 import static edu.brown.cs.board.TileType.DESERT;
+import static edu.brown.cs.board.TileType.GOLD;
 import static edu.brown.cs.board.TileType.ORE;
+import static edu.brown.cs.board.TileType.WATER;
 import static edu.brown.cs.board.TileType.SEA;
 import static edu.brown.cs.board.TileType.SHEEP;
 import static edu.brown.cs.board.TileType.WHEAT;
@@ -213,6 +215,9 @@ public class Board {
     if (settings.isStandard) {
       availTiles = standardBoard();
       rollNums = Settings.STANDARD_ROLL_NUMS;
+    } else if (settings.isSeafarers) {
+      // Fixed island layout (placeholder scenario) - do not shuffle.
+      availTiles = seafarersBoard();
     } else {
       addTiles(availTiles, WOOD, NUM_WOOD_TILE);
       addTiles(availTiles, BRICK, NUM_BRICK_TILE);
@@ -326,13 +331,20 @@ public class Board {
       Map<IntersectionCoordinate, Intersection> intersections,
       Map<PathCoordinate, Path> paths, Integer currRoll, Integer currTile,
       int[] rollNums) {
-    if (tileType != DESERT) {
+    if (tileType == DESERT) {
+      _tiles.add(new Tile(0, coord, intersections, paths, tileType, true));
+      return currRoll;
+    } else if (tileType == WATER || tileType == GOLD) {
+      // No roll number, no robber, no production. GOLD renders here but stays
+      // non-producing until Track 1 wires the ChooseGoldResource FollowUp
+      // (its resource type is null, which the production path asserts against).
+      // ponytail: non-producing gold hex, Track 1 gives it a real roll + choice.
+      _tiles.add(new Tile(0, coord, intersections, paths, tileType));
+      return currRoll;
+    } else {
       _tiles.add(new Tile(rollNums[currRoll], coord, intersections, paths,
           tileType));
       return currRoll + 1;
-    } else {
-      _tiles.add(new Tile(0, coord, intersections, paths, tileType, true));
-      return currRoll;
     }
   }
 
@@ -410,6 +422,39 @@ public class Board {
     tiles.add(SHEEP);
     tiles.add(WOOD);
     tiles.add(WHEAT);
+    return tiles;
+  }
+
+  // Placeholder Seafarers island layout. The spiral generator lays these out
+  // outer-ring-first (indices 0-11), then middle ring (12-17), then center
+  // (18), so the outer ring is mostly WATER to give an island shape. One GOLD
+  // hex and one DESERT (robber home) sit in the middle ring.
+  // ponytail: single hardcoded scenario; SeafarersSetup scenario loader (Track
+  // 1) generalizes this to real maps like "Heading for New Shores".
+  private List<TileType> seafarersBoard() {
+    List<TileType> tiles = new ArrayList<>();
+    // Outer ring (0-11): coastline.
+    tiles.add(WATER);
+    tiles.add(WOOD);
+    tiles.add(WATER);
+    tiles.add(WATER);
+    tiles.add(BRICK);
+    tiles.add(WATER);
+    tiles.add(WATER);
+    tiles.add(SHEEP);
+    tiles.add(WATER);
+    tiles.add(WATER);
+    tiles.add(WHEAT);
+    tiles.add(WATER);
+    // Middle ring (12-17): island interior.
+    tiles.add(ORE);
+    tiles.add(GOLD);
+    tiles.add(DESERT);
+    tiles.add(WHEAT);
+    tiles.add(WOOD);
+    tiles.add(SHEEP);
+    // Center (18).
+    tiles.add(BRICK);
     return tiles;
   }
 
