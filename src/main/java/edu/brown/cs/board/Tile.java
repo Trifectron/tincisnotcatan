@@ -27,6 +27,7 @@ public class Tile implements BoardTile {
   private final TileType _type;
   private final HexCoordinate _coordinate;
   private boolean _hasRobber;
+  private int _merchantOwner = -1;
   private List<IntersectionCoordinate> _portLocations;
   private Resource _portType;
 
@@ -429,6 +430,24 @@ public class Tile implements BoardTile {
    */
   public void setRollNumber(int rollNum) {
     _rollNum = rollNum;
+  }
+
+  /**
+   * @return The id of the player whose Merchant (Cities &amp; Knights) is on
+   *         this tile, or -1 if none.
+   */
+  public int getMerchantOwner() {
+    return _merchantOwner;
+  }
+
+  /**
+   * Sets which player's Merchant (Cities &amp; Knights) occupies this tile.
+   *
+   * @param playerID
+   *          The owning player's id, or -1 to clear it.
+   */
+  public void setMerchantOwner(int playerID) {
+    _merchantOwner = playerID;
   }
 
   @Override
