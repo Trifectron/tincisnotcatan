@@ -33,6 +33,9 @@ public class MasterReferee implements Referee {
   private Turn _turn;
   private final Bank _bank;
   private final List<DevelopmentCard> _devCardDeck;
+  // Cities & Knights progress card decks, one per improvement track. Empty in
+  // base games.
+  private final Map<CityImprovement, ProgressCardDeck> _progressDecks;
   private final GameSettings _gameSettings;
   private Player _largestArmy = null;
   private Player _longestRoad = null;
@@ -51,6 +54,7 @@ public class MasterReferee implements Referee {
     _turnOrder = initializeTurnOrder(_gameSettings.numPlayers);
     _bank = initializeBank(false);
     _devCardDeck = initializeDevDeck();
+    _progressDecks = initializeProgressDecks(_gameSettings.isCitiesAndKnights);
     _turn = new Turn(1, Collections.emptyMap());
     _gameStatus = GameStatus.WAITING;
     _setup = new Setup(getSetupOrder());
@@ -71,10 +75,22 @@ public class MasterReferee implements Referee {
     _turnOrder = initializeTurnOrder(_gameSettings.numPlayers);
     _bank = initializeBank(_gameSettings.isDynamic);
     _devCardDeck = initializeDevDeck();
+    _progressDecks = initializeProgressDecks(_gameSettings.isCitiesAndKnights);
     _turn = new Turn(1, Collections.emptyMap());
     _gameStatus = GameStatus.WAITING;
     _setup = new Setup(getSetupOrder());
     _gameStats = CatanStats.getGameStatsObject();
+  }
+
+  private Map<CityImprovement, ProgressCardDeck> initializeProgressDecks(
+      boolean citiesAndKnights) {
+    Map<CityImprovement, ProgressCardDeck> decks = new HashMap<>();
+    if (citiesAndKnights) {
+      for (CityImprovement track : CityImprovement.values()) {
+        decks.put(track, new ProgressCardDeck(track));
+      }
+    }
+    return decks;
   }
 
   private List<Integer> getSetupOrder() {
@@ -129,6 +145,12 @@ public class MasterReferee implements Referee {
   @Override
   public DevelopmentCard getDevCard() {
     return _devCardDeck.remove(0);
+  }
+
+  @Override
+  public ProgressCardType drawProgressCard(CityImprovement track) {
+    ProgressCardDeck deck = _progressDecks.get(track);
+    return deck == null ? null : deck.draw();
   }
 
   @Override
@@ -379,6 +401,12 @@ public class MasterReferee implements Referee {
     public DevelopmentCard getDevCard() {
       throw new UnsupportedOperationException(
           "A ReadOnlyReferee cannot draw from the dev card deck.");
+    }
+
+    @Override
+    public ProgressCardType drawProgressCard(CityImprovement track) {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyReferee cannot draw progress cards.");
     }
 
     @Override

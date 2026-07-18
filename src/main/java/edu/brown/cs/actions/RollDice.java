@@ -11,8 +11,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 
 import edu.brown.cs.board.Tile;
+import edu.brown.cs.catan.CityImprovement;
 import edu.brown.cs.catan.Commodity;
 import edu.brown.cs.catan.Player;
+import edu.brown.cs.catan.ProgressCardType;
 import edu.brown.cs.catan.Referee;
 import edu.brown.cs.catan.Resource;
 import edu.brown.cs.catan.Settings;
@@ -59,10 +61,17 @@ public class RollDice implements FollowUpAction {
     }
     Random r = new Random();
     PrimitiveIterator.OfInt rolls = r.ints(1, 7).iterator();
-    int diceRoll = rolls.nextInt() + rolls.nextInt();
+    int redDie = rolls.nextInt();
+    int diceRoll = redDie + rolls.nextInt();
     _ref.getGameStats().addRoll(diceRoll);
     Map<Integer, Map<Resource, Integer>> playerResourceCount = new HashMap<>();
     Map<Integer, ActionResponse> toRet = new HashMap<>();
+
+    // Cities & Knights: roll the event die and hand out progress cards. This is
+    // independent of the number rolled, so it happens on any roll (including 7).
+    if (_ref.getGameSettings().isCitiesAndKnights) {
+      handleEventDie(r, redDie);
+    }
 
     if (diceRoll != 7) {
       Collection<Tile> tiles = _ref.getBoard().getTiles();
@@ -249,5 +258,45 @@ public class RollDice implements FollowUpAction {
   @Override
   public String getVerb() {
     return VERB;
+  }
+
+  /**
+   * Cities &amp; Knights event die. Three of its six faces advance the barbarian
+   * fleet (handled by the barbarian subsystem in a later step); the other three
+   * each name an improvement track. When a track is shown, every player whose
+   * improvement level on that track is at least the red die's value draws a
+   * progress card from that track's deck.
+   *
+   * @param r
+   *          The dice random source.
+   * @param redDie
+   *          The value of the red production die (1-6).
+   */
+  private void handleEventDie(Random r, int redDie) {
+    int eventDie = r.nextInt(6) + 1;
+    CityImprovement track;
+    switch (eventDie) {
+    case 4:
+      track = CityImprovement.TRADE;
+      break;
+    case 5:
+      track = CityImprovement.SCIENCE;
+      break;
+    case 6:
+      track = CityImprovement.POLITICS;
+      break;
+    default:
+      // 1-3: barbarian ship advances. ponytail: no-op until the barbarian
+      // subsystem (BarbarianTrack) lands.
+      return;
+    }
+    for (Player p : _ref.getPlayers()) {
+      if (p.getImprovementLevel(track) >= redDie) {
+        ProgressCardType card = _ref.drawProgressCard(track);
+        if (card != null) {
+          _ref.getPlayerByID(p.getID()).addProgressCard(card);
+        }
+      }
+    }
   }
 }

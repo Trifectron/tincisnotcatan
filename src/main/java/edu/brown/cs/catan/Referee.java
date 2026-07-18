@@ -26,6 +26,16 @@ public interface Referee {
 
   boolean devCardDeckIsEmpty();
 
+  /**
+   * Draws the top progress card from the given improvement track's deck (Cities
+   * &amp; Knights).
+   *
+   * @param track
+   *          The improvement track whose deck to draw from.
+   * @return The drawn card, or null if the game has no such deck or it is empty.
+   */
+  ProgressCardType drawProgressCard(CityImprovement track);
+
   GameSettings getGameSettings();
 
   Referee getReadOnlyReferee();
