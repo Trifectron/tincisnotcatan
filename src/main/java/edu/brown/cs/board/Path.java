@@ -194,6 +194,17 @@ public class Path {
   }
 
   /**
+   * Removes the road on this path (Cities &amp; Knights Diplomat progress
+   * card), returning it to the owner's supply.
+   */
+  public void removeRoad() {
+    if (_road != null) {
+      _road.getPlayer().returnRoad();
+      _road = null;
+    }
+  }
+
+  /**
    * Gets the start of the path.
    *
    * @return the starting Intersection of the path.
