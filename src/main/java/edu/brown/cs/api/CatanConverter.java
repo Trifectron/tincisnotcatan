@@ -22,6 +22,7 @@ import edu.brown.cs.board.Port;
 import edu.brown.cs.board.Road;
 import edu.brown.cs.board.Tile;
 import edu.brown.cs.board.TileType;
+import edu.brown.cs.catan.CityImprovement;
 import edu.brown.cs.catan.Commodity;
 import edu.brown.cs.catan.DevelopmentCard;
 import edu.brown.cs.catan.GameSettings;
@@ -116,6 +117,7 @@ public class CatanConverter {
   private static class Hand {
     private final Map<Resource, Double> resources;
     private final Map<Commodity, Double> commodities;
+    private final Map<CityImprovement, Integer> improvements;
     private final Map<DevelopmentCard, Integer> devCards;
     private boolean canBuildRoad;
     private boolean canBuildSettlement;
@@ -125,6 +127,7 @@ public class CatanConverter {
     public Hand(Player player) {
       resources = player.getResources();
       commodities = player.getCommodities();
+      improvements = player.getCityImprovements();
       devCards = player.getDevCards();
       canBuildRoad = player.canBuildRoad();
       canBuildSettlement = player.canBuildSettlement();

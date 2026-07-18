@@ -122,4 +122,22 @@ public interface Player {
 
   boolean hasCommodity(Commodity commodity, double count);
 
+  /**
+   * The player's Cities &amp; Knights city-improvement levels. Base-game players
+   * sit at level zero on every track.
+   *
+   * @return An unmodifiable map of improvement track to level.
+   */
+  Map<CityImprovement, Integer> getCityImprovements();
+
+  int getImprovementLevel(CityImprovement improvement);
+
+  /**
+   * Whether the player can advance the given track: below the max level and
+   * holding enough of the track's commodity to pay for the next level.
+   */
+  boolean canImproveCity(CityImprovement improvement);
+
+  void improveCity(CityImprovement improvement);
+
 }

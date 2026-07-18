@@ -23,6 +23,8 @@ public class HumanPlayer implements Player {
   private final Map<DevelopmentCard, Integer> devCards;
   // Cities & Knights commodity hand (all zero in base games):
   private final Map<Commodity, Double> commodities;
+  // Cities & Knights city-improvement levels (all zero in base games):
+  private final Map<CityImprovement, Integer> cityImprovements;
 
   // Remaining Buildings:
   private int numRoads;
@@ -65,6 +67,11 @@ public class HumanPlayer implements Player {
     this.commodities = new HashMap<>();
     for (Commodity commodity : Commodity.values()) {
       commodities.put(commodity, 0.0);
+    }
+    // Initialize city-improvement tracks:
+    this.cityImprovements = new HashMap<>();
+    for (CityImprovement improvement : CityImprovement.values()) {
+      cityImprovements.put(improvement, 0);
     }
   }
 
@@ -229,6 +236,33 @@ public class HumanPlayer implements Player {
   @Override
   public boolean hasCommodity(Commodity commodity, double count) {
     return commodities.get(commodity) >= count;
+  }
+
+  @Override
+  public Map<CityImprovement, Integer> getCityImprovements() {
+    return Collections.unmodifiableMap(cityImprovements);
+  }
+
+  @Override
+  public int getImprovementLevel(CityImprovement improvement) {
+    return cityImprovements.get(improvement);
+  }
+
+  @Override
+  public boolean canImproveCity(CityImprovement improvement) {
+    int level = cityImprovements.get(improvement);
+    // Advancing to the next level costs (level + 1) of the track's commodity.
+    return level < CityImprovement.MAX_LEVEL
+        && hasCommodity(improvement.getCommodity(), level + 1);
+  }
+
+  @Override
+  public void improveCity(CityImprovement improvement) {
+    if (canImproveCity(improvement)) {
+      int level = cityImprovements.get(improvement);
+      removeCommodity(improvement.getCommodity(), level + 1);
+      cityImprovements.put(improvement, level + 1);
+    }
   }
 
   @Override
@@ -606,6 +640,27 @@ public class HumanPlayer implements Player {
     @Override
     public boolean hasCommodity(Commodity commodity, double count) {
       return _player.hasCommodity(commodity, count);
+    }
+
+    @Override
+    public Map<CityImprovement, Integer> getCityImprovements() {
+      return _player.getCityImprovements();
+    }
+
+    @Override
+    public int getImprovementLevel(CityImprovement improvement) {
+      return _player.getImprovementLevel(improvement);
+    }
+
+    @Override
+    public boolean canImproveCity(CityImprovement improvement) {
+      return _player.canImproveCity(improvement);
+    }
+
+    @Override
+    public void improveCity(CityImprovement improvement) {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyPlayer cannot improve cities.");
     }
 
     @Override
