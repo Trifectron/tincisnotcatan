@@ -32,6 +32,9 @@ function Intersection(coord1, coord2, coord3) {
 	this.building = BUILDING.NONE;
 	this.player;
 
+	// Cities & Knights knight occupying this intersection: {player, tier, active}
+	this.knight = null;
+
 	this.port = PORT.NONE;
 	
 	this.highlighted = false;
@@ -98,6 +101,34 @@ Intersection.prototype.draw = function(transX, transY, scale) {
 		break;
 	}
 	
+	// Render a Cities & Knights knight, if one occupies this intersection.
+	// Knights and buildings never share an intersection, so we reuse the same
+	// element the building would use.
+	if (this.knight) {
+		var kSize = scale * SETTLEMENT_SCALE * 1.2;
+		var kx = transX + displacement.x * scale + Math.sqrt(3) * scale / 4 - kSize / 4;
+		var ky = transY + displacement.y * scale + scale / 4 - kSize / 2;
+		var tier = this.knight.tier === 3 ? "mighty"
+				: (this.knight.tier === 2 ? "strong" : "basic");
+		var owner = playersById[this.knight.player];
+		var kColor = owner ? owner.color : "#000000";
+
+		element.append("<img class='knight-icon' src='images/knight-" + tier + ".png'>");
+		element.css("transform", "translate(" + kx + "px, " + ky + "px)");
+		element.attr("height", kSize);
+		element.attr("width", kSize);
+
+		var kImg = element.children("img").last();
+		kImg.css("width", kSize);
+		kImg.css("height", kSize);
+		kImg.css("box-sizing", "border-box");
+		kImg.css("border", Math.max(1, scale * 0.015) + "px solid " + kColor);
+		kImg.css("border-radius", "50%");
+		kImg.css("background-color", kColor);
+		// Inactive knights are dimmed.
+		kImg.css("opacity", this.knight.active ? "1" : "0.45");
+	}
+
 	// Calculate size and displacement of selectable area
 	var size = scale * SELECTABLE_AREA_SCALE;
 	var x = transX + displacement.x * scale + Math.sqrt(3) * scale / 4 - size / 4 - 0.020 * scale;
@@ -200,6 +231,10 @@ function parseIntersection(data) {
 		} else if (data.building.type === "city") {
 			intersect.addCity(player);
 		}
+	}
+
+	if (data.hasOwnProperty("knight") && data.knight) {
+		intersect.knight = data.knight;
 	}
 
 	if (data.hasOwnProperty("port")) {
