@@ -58,14 +58,15 @@ public class ProgressCardTest {
         ProgressCardType.BISHOP), drawnPolitics);
 
     ProgressCardDeck trade = new ProgressCardDeck(CityImprovement.TRADE);
-    assertEquals(4, trade.size());
+    assertEquals(5, trade.size());
     Set<ProgressCardType> drawnTrade = new HashSet<>();
     while (!trade.isEmpty()) {
       drawnTrade.add(trade.draw());
     }
     assertEquals(EnumSet.of(ProgressCardType.MASTER_MERCHANT,
         ProgressCardType.RESOURCE_MONOPOLY, ProgressCardType.TRADE_MONOPOLY,
-        ProgressCardType.MERCHANT_FLEET), drawnTrade);
+        ProgressCardType.MERCHANT_FLEET, ProgressCardType.MERCHANT),
+        drawnTrade);
     assertNull(trade.draw());
   }
 
@@ -397,6 +398,87 @@ public class ProgressCardTest {
     Player pa = ref.getPlayerByID(p0);
 
     String msg = ProgressCardType.INVENTOR.play(ref, pa, "0,0,0;99,99,99");
+    assertTrue(msg.contains("isn't on the board"));
+  }
+
+  private static Tile findResourceTile(MasterReferee ref, Tile exclude) {
+    for (Tile t : ref.getBoard().getTiles()) {
+      if (t.getType().getType() != null && !t.equals(exclude)) {
+        return t;
+      }
+    }
+    return null;
+  }
+
+  private static String coordTarget(Tile t) {
+    return String.format("%d,%d,%d", t.getCoordinate().getX(),
+        t.getCoordinate().getY(), t.getCoordinate().getZ());
+  }
+
+  @Test
+  public void merchantGrantsATwoToOneRateAndAVictoryPoint() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Tile tile = findResourceTile(ref, null);
+    Resource res = tile.getType().getType();
+    int vpBefore = pa.numVictoryPoints();
+
+    String msg = ProgressCardType.MERCHANT.play(ref, pa, coordTarget(tile));
+
+    assertEquals(vpBefore + 1, pa.numVictoryPoints());
+    assertEquals(2, ref.getBankRates(p0).get(res), 0.0001);
+    assertTrue(msg.contains("2:1"));
+  }
+
+  @Test
+  public void merchantMovingYourOwnMerchantDoesNotGrantASecondVictoryPoint() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Tile first = findResourceTile(ref, null);
+    Tile second = findResourceTile(ref, first);
+    int vpBefore = pa.numVictoryPoints();
+
+    ProgressCardType.MERCHANT.play(ref, pa, coordTarget(first));
+    ProgressCardType.MERCHANT.play(ref, pa, coordTarget(second));
+
+    assertEquals(vpBefore + 1, pa.numVictoryPoints());
+    assertEquals(-1, first.getMerchantOwner());
+    assertEquals(p0, second.getMerchantOwner());
+  }
+
+  @Test
+  public void merchantDisplacesTheEarlierOwnersVictoryPoint() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+    Tile tile = findResourceTile(ref, null);
+    int paVpBefore = pa.numVictoryPoints();
+    int pbVpBefore = pb.numVictoryPoints();
+
+    ProgressCardType.MERCHANT.play(ref, pa, coordTarget(tile));
+    ProgressCardType.MERCHANT.play(ref, pb, coordTarget(tile));
+
+    assertEquals(paVpBefore, pa.numVictoryPoints());
+    assertEquals(pbVpBefore + 1, pb.numVictoryPoints());
+    assertEquals(p1, tile.getMerchantOwner());
+  }
+
+  @Test
+  public void merchantNoOpWithUnknownTile() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    Player pa = ref.getPlayerByID(p0);
+
+    // HexCoordinate.equals compares cartesian projections, so an x=y=z
+    // coordinate like "99,99,99" aliases the origin tile; "0,100,0" is
+    // actually far off the board.
+    String msg = ProgressCardType.MERCHANT.play(ref, pa, "0,100,0");
     assertTrue(msg.contains("isn't on the board"));
   }
 }
