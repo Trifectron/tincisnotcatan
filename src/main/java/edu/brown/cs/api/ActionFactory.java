@@ -5,7 +5,9 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 
 import edu.brown.cs.actions.Action;
+import edu.brown.cs.actions.ActivateKnight;
 import edu.brown.cs.actions.BuildCity;
+import edu.brown.cs.actions.BuildKnight;
 import edu.brown.cs.actions.BuildRoad;
 import edu.brown.cs.actions.BuildSettlement;
 import edu.brown.cs.actions.BuyDevelopmentCard;
@@ -13,7 +15,9 @@ import edu.brown.cs.actions.EmptyAction;
 import edu.brown.cs.actions.EndTurn;
 import edu.brown.cs.actions.FollowUpAction;
 import edu.brown.cs.actions.ImproveCity;
+import edu.brown.cs.actions.MoveKnight;
 import edu.brown.cs.actions.PlayKnight;
+import edu.brown.cs.actions.UpgradeKnight;
 import edu.brown.cs.actions.PlayMonopoly;
 import edu.brown.cs.actions.PlayProgressCard;
 import edu.brown.cs.actions.PlayRoadBuilding;
@@ -127,6 +131,23 @@ public class ActionFactory {
         case PlayProgressCard.ID:
           return new PlayProgressCard(_referee, playerID, actionJSON
               .get("card").getAsString());
+        case BuildKnight.ID:
+          return new BuildKnight(_referee, playerID,
+              toIntersectionCoordinate(actionJSON.get("coordinate")
+                  .getAsJsonObject()));
+        case ActivateKnight.ID:
+          return new ActivateKnight(_referee, playerID,
+              toIntersectionCoordinate(actionJSON.get("coordinate")
+                  .getAsJsonObject()));
+        case UpgradeKnight.ID:
+          return new UpgradeKnight(_referee, playerID,
+              toIntersectionCoordinate(actionJSON.get("coordinate")
+                  .getAsJsonObject()));
+        case MoveKnight.ID:
+          return new MoveKnight(_referee, playerID,
+              toIntersectionCoordinate(actionJSON.get("from")
+                  .getAsJsonObject()),
+              toIntersectionCoordinate(actionJSON.get("to").getAsJsonObject()));
         default:
           String err = String.format("The action %s does not exist.", action);
           throw new IllegalArgumentException(err);

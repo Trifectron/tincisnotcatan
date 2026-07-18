@@ -333,6 +333,13 @@ public class HumanPlayer implements Player {
   }
 
   @Override
+  public void downgradeCity() {
+    assert numSettlements > 0;
+    numCities++;
+    numSettlements--;
+  }
+
+  @Override
   public void useSettlement() {
     assert numSettlements > 0;
     numSettlements--;
@@ -499,6 +506,12 @@ public class HumanPlayer implements Player {
     public void useCity() {
       throw new UnsupportedOperationException(
           "Player is immutable and cannot build.");
+    }
+
+    @Override
+    public void downgradeCity() {
+      throw new UnsupportedOperationException(
+          "Player is immutable and cannot downgrade a city.");
     }
 
     @Override

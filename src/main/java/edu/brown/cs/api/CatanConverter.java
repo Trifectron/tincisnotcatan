@@ -17,6 +17,7 @@ import edu.brown.cs.board.Building;
 import edu.brown.cs.board.HexCoordinate;
 import edu.brown.cs.board.Intersection;
 import edu.brown.cs.board.IntersectionCoordinate;
+import edu.brown.cs.board.Knight;
 import edu.brown.cs.board.Path;
 import edu.brown.cs.board.Port;
 import edu.brown.cs.board.Road;
@@ -216,6 +217,7 @@ public class CatanConverter {
   private static class IntersectionRaw {
 
     private final BuildingRaw building;
+    private final KnightRaw knight;
     private final Port port;
     private final IntersectionCoordinate coordinate;
     private final boolean canBuildSettlement;
@@ -223,11 +225,24 @@ public class CatanConverter {
     IntersectionRaw(Intersection i, Referee ref, int playerID) {
       building = i.getBuilding() != null ? new BuildingRaw(i.getBuilding())
           : null;
+      knight = i.getKnight() != null ? new KnightRaw(i.getKnight()) : null;
       port = i.getPort();
       coordinate = i.getPosition();
       canBuildSettlement = i.canPlaceSettlement(ref, playerID);
     }
 
+  }
+
+  private static class KnightRaw {
+    private final int player;
+    private final int tier;
+    private final boolean active;
+
+    KnightRaw(Knight knight) {
+      player = knight.getPlayer().getID();
+      tier = knight.getTier();
+      active = knight.isActive();
+    }
   }
 
   private static class TileRaw {

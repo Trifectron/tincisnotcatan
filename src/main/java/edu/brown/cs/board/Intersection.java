@@ -14,6 +14,7 @@ import edu.brown.cs.catan.Resource;
 public class Intersection {
   private List<Path> _paths;
   private Building _building;
+  private Knight _knight;
   private Port _port;
   private IntersectionCoordinate _position;
 
@@ -27,6 +28,7 @@ public class Intersection {
   public Intersection(IntersectionCoordinate position) {
     _position = position;
     _building = null;
+    _knight = null;
     _port = null;
     _paths = new ArrayList<Path>();
   }
@@ -212,11 +214,85 @@ public class Intersection {
 
   /**
    * Getter for the building on this intersection.
-   * 
+   *
    * @return The building on this intersection, else null.
    */
   public Building getBuilding() {
     return _building;
+  }
+
+  /**
+   * @return The knight on this intersection, else null.
+   */
+  public Knight getKnight() {
+    return _knight;
+  }
+
+  /**
+   * @return Whether a knight occupies this intersection.
+   */
+  public boolean hasKnight() {
+    return _knight != null;
+  }
+
+  /**
+   * Whether a player may place a knight here: the intersection is empty (no
+   * building, no knight) and touches one of the player's roads. Unlike
+   * settlements, knights have no distance rule.
+   *
+   * @param playerID
+   *          The player wanting to place a knight.
+   * @return Whether placement is legal.
+   */
+  public boolean canPlaceKnight(int playerID) {
+    if (_building != null || _knight != null) {
+      return false;
+    }
+    for (Path p : _paths) {
+      if (p.getRoad() != null && p.getRoad().getPlayer().getID() == playerID) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Places a new basic knight for the player if the intersection is empty.
+   *
+   * @param p
+   *          The knight's owner.
+   */
+  public void placeKnight(Player p) {
+    if (_building == null && _knight == null) {
+      _knight = new Knight(p);
+    }
+  }
+
+  /**
+   * Puts an existing knight on this intersection (used when moving a knight).
+   *
+   * @param knight
+   *          The knight to place.
+   */
+  public void setKnight(Knight knight) {
+    _knight = knight;
+  }
+
+  /**
+   * Removes the knight from this intersection.
+   */
+  public void removeKnight() {
+    _knight = null;
+  }
+
+  /**
+   * Downgrades a city on this intersection back to a settlement (e.g. after a
+   * lost barbarian attack). No-op if there is no city here.
+   */
+  public void downgradeCity() {
+    if (_building instanceof City) {
+      _building = new Settlement(_building.getPlayer());
+    }
   }
 
   @Override

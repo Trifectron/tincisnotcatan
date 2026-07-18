@@ -61,6 +61,12 @@ public interface Player {
    */
   void useCity();
 
+  /**
+   * Reverses a city placement: returns a city to the player's supply and uses a
+   * settlement piece (e.g. a city downgraded by a barbarian attack).
+   */
+  void downgradeCity();
+
   void useSettlement();
 
   void playDevelopmentCard(DevelopmentCard card);

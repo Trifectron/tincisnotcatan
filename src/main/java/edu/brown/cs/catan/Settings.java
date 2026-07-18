@@ -44,6 +44,17 @@ public abstract class Settings {
       Resource.BRICK, 1.0, Resource.SHEEP, 1.0, Resource.WHEAT, 1.0,
       Resource.WOOD, 1.0);
 
+  // Cities & Knights costs. Building and upgrading a knight costs ore + wool;
+  // activating one costs grain (wheat).
+  public final static Map<Resource, Double> KNIGHT_COST = ImmutableMap.of(
+      Resource.ORE, 1.0, Resource.SHEEP, 1.0);
+  public final static Map<Resource, Double> ACTIVATE_KNIGHT_COST =
+      ImmutableMap.of(Resource.WHEAT, 1.0);
+  public static final int MAX_KNIGHT_TIER = 3;
+
+  // Cities & Knights: steps the barbarian fleet takes to reach the island.
+  public static final int BARBARIAN_TRACK_LENGTH = 7;
+
   // Bank rates for trading in basic game:
   public final static double BANK_RATE = 4.0;
   public final static double WILDCARD_RATE = 3.0;
