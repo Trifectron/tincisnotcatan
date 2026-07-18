@@ -33,8 +33,9 @@ public class RollDice implements FollowUpAction {
   private final int _playerID;
   private Referee _ref;
   private static final String VERB = "start the next turn.";
-  private static final String ID = "rollDice";
+  public static final String ID = "rollDice";
   private boolean _isSetUp = false;
+  private Integer _forcedRoll;
 
   public RollDice(Referee ref, int playerID) {
     assert ref != null;
@@ -55,6 +56,19 @@ public class RollDice implements FollowUpAction {
     _playerID = playerID;
   }
 
+  /**
+   * Overrides this roll's production total (Cities &amp; Knights Alchemist
+   * progress card). The event die and any 7-handling still run normally;
+   * only the production number changes. Must be called before
+   * {@link #execute()}.
+   *
+   * @param roll
+   *          The production total to use instead of a random roll.
+   */
+  public void forceRoll(int roll) {
+    _forcedRoll = roll;
+  }
+
   @Override
   public Map<Integer, ActionResponse> execute() {
     if (!_isSetUp) {
@@ -64,7 +78,7 @@ public class RollDice implements FollowUpAction {
     Random r = new Random();
     PrimitiveIterator.OfInt rolls = r.ints(1, 7).iterator();
     int redDie = rolls.nextInt();
-    int diceRoll = redDie + rolls.nextInt();
+    int diceRoll = _forcedRoll != null ? _forcedRoll : redDie + rolls.nextInt();
     _ref.getGameStats().addRoll(diceRoll);
     Map<Integer, Map<Resource, Integer>> playerResourceCount = new HashMap<>();
     Map<Integer, ActionResponse> toRet = new HashMap<>();
