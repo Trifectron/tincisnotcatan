@@ -13,10 +13,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import edu.brown.cs.actions.FollowUpAction;
 import edu.brown.cs.board.Board;
+import edu.brown.cs.board.Building;
+import edu.brown.cs.board.City;
 import edu.brown.cs.board.Intersection;
+import edu.brown.cs.board.Knight;
 import edu.brown.cs.gamestats.CatanStats;
 import edu.brown.cs.gamestats.GameStats;
 
@@ -36,6 +40,8 @@ public class MasterReferee implements Referee {
   // Cities & Knights progress card decks, one per improvement track. Empty in
   // base games.
   private final Map<CityImprovement, ProgressCardDeck> _progressDecks;
+  // Cities & Knights barbarian fleet track (null in base games).
+  private final BarbarianTrack _barbarianTrack;
   private final GameSettings _gameSettings;
   private Player _largestArmy = null;
   private Player _longestRoad = null;
@@ -55,6 +61,8 @@ public class MasterReferee implements Referee {
     _bank = initializeBank(false);
     _devCardDeck = initializeDevDeck();
     _progressDecks = initializeProgressDecks(_gameSettings.isCitiesAndKnights);
+    _barbarianTrack = _gameSettings.isCitiesAndKnights ? new BarbarianTrack()
+        : null;
     _turn = new Turn(1, Collections.emptyMap());
     _gameStatus = GameStatus.WAITING;
     _setup = new Setup(getSetupOrder());
@@ -76,6 +84,8 @@ public class MasterReferee implements Referee {
     _bank = initializeBank(_gameSettings.isDynamic);
     _devCardDeck = initializeDevDeck();
     _progressDecks = initializeProgressDecks(_gameSettings.isCitiesAndKnights);
+    _barbarianTrack = _gameSettings.isCitiesAndKnights ? new BarbarianTrack()
+        : null;
     _turn = new Turn(1, Collections.emptyMap());
     _gameStatus = GameStatus.WAITING;
     _setup = new Setup(getSetupOrder());
@@ -151,6 +161,80 @@ public class MasterReferee implements Referee {
   public ProgressCardType drawProgressCard(CityImprovement track) {
     ProgressCardDeck deck = _progressDecks.get(track);
     return deck == null ? null : deck.draw();
+  }
+
+  @Override
+  public BarbarianTrack getBarbarianTrack() {
+    return _barbarianTrack;
+  }
+
+  @Override
+  public String resolveBarbarianAttack() {
+    // Barbarian strength is the number of cities; knight strength is the sum of
+    // active knight tiers, tallied per player.
+    int barbarianStrength = 0;
+    Map<Integer, Integer> knightStrength = new HashMap<>();
+    for (Player p : _players.values()) {
+      knightStrength.put(p.getID(), 0);
+    }
+    for (Intersection i : _board.getIntersections().values()) {
+      Building building = i.getBuilding();
+      if (building instanceof City) {
+        barbarianStrength++;
+      }
+      Knight knight = i.getKnight();
+      if (knight != null && knight.isActive()) {
+        knightStrength.merge(knight.getPlayer().getID(), knight.getTier(),
+            Integer::sum);
+      }
+    }
+    int totalKnightStrength = 0;
+    for (int strength : knightStrength.values()) {
+      totalKnightStrength += strength;
+    }
+
+    String message;
+    if (BarbarianAttack.defendersWin(barbarianStrength, totalKnightStrength)) {
+      int defender = BarbarianAttack.defenderOfCatan(knightStrength);
+      if (defender >= 0) {
+        getPlayerByID(defender).addVictoryPoints(1);
+        message = String.format(
+            "The barbarians were repelled! %s is the Defender of Catan (+1 VP).",
+            getPlayerByID(defender).getName());
+      } else {
+        message = "The barbarians were repelled, but no single knight force "
+            + "stood out.";
+      }
+    } else {
+      Set<Integer> losers = BarbarianAttack.weakestDefenders(knightStrength);
+      for (int playerID : losers) {
+        downgradeOneCity(playerID);
+      }
+      message = "The barbarians attacked! The weakest defenders lost a city.";
+    }
+
+    // A barbarian attack deactivates every knight and resets the fleet.
+    for (Intersection i : _board.getIntersections().values()) {
+      Knight knight = i.getKnight();
+      if (knight != null) {
+        knight.deactivate();
+      }
+    }
+    _barbarianTrack.reset();
+    return message;
+  }
+
+  // Downgrades one of the player's cities (if any) back to a settlement.
+  private void downgradeOneCity(int playerID) {
+    for (Intersection i : _board.getIntersections().values()) {
+      Building building = i.getBuilding();
+      if (building instanceof City
+          && building.getPlayer().getID() == playerID) {
+        i.downgradeCity();
+        getPlayerByID(playerID).downgradeCity();
+        return;
+      }
+    }
   }
 
   @Override
@@ -407,6 +491,17 @@ public class MasterReferee implements Referee {
     public ProgressCardType drawProgressCard(CityImprovement track) {
       throw new UnsupportedOperationException(
           "A ReadOnlyReferee cannot draw progress cards.");
+    }
+
+    @Override
+    public BarbarianTrack getBarbarianTrack() {
+      return _referee.getBarbarianTrack();
+    }
+
+    @Override
+    public String resolveBarbarianAttack() {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyReferee cannot resolve a barbarian attack.");
     }
 
     @Override

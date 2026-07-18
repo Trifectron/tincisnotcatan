@@ -36,6 +36,22 @@ public interface Referee {
    */
   ProgressCardType drawProgressCard(CityImprovement track);
 
+  /**
+   * @return The barbarian fleet track (Cities &amp; Knights), or null in base
+   *         games.
+   */
+  BarbarianTrack getBarbarianTrack();
+
+  /**
+   * Resolves a barbarian attack: compares total active knight strength against
+   * the barbarian fleet (the number of cities), applies the consequences
+   * (reward the strongest defender, or downgrade the weakest defenders' cities),
+   * deactivates all knights, and resets the track.
+   *
+   * @return A message describing the outcome.
+   */
+  String resolveBarbarianAttack();
+
   GameSettings getGameSettings();
 
   Referee getReadOnlyReferee();

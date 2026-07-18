@@ -286,8 +286,11 @@ public class RollDice implements FollowUpAction {
       track = CityImprovement.POLITICS;
       break;
     default:
-      // 1-3: barbarian ship advances. ponytail: no-op until the barbarian
-      // subsystem (BarbarianTrack) lands.
+      // 1-3: the barbarian fleet advances; it attacks on reaching the island.
+      _ref.getBarbarianTrack().advance();
+      if (_ref.getBarbarianTrack().hasReachedIsland()) {
+        _ref.resolveBarbarianAttack();
+      }
       return;
     }
     for (Player p : _ref.getPlayers()) {

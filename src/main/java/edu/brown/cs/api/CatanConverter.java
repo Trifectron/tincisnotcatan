@@ -75,6 +75,7 @@ public class CatanConverter {
     private Collection<PublicPlayerRaw> players;
     private GameSettings settings;
     private GameStatsRaw stats;
+    private Integer barbarianPosition;
 
     public GameState(Referee ref, int playerID) {
       this.playerID = playerID;
@@ -91,6 +92,8 @@ public class CatanConverter {
       this.players = new ArrayList<>();
       this.settings = ref.getGameSettings();
       this.stats = new GameStatsRaw(ref);
+      this.barbarianPosition = ref.getBarbarianTrack() != null ? ref
+          .getBarbarianTrack().getPosition() : null;
       for (Player p : ref.getPlayers()) {
         players.add(new PublicPlayerRaw(p, ref.getReadOnlyReferee()));
       }
