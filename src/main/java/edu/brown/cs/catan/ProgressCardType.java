@@ -19,11 +19,11 @@ import edu.brown.cs.board.TileType;
  *
  * Cards that need a player-chosen target take it as a string in
  * {@link #play(Referee, Player, String)}: a resource name (Resource
- * Monopoly, Trade Monopoly, Merchant Fleet) or two semicolon-separated tile
- * coordinates (Inventor); cards that don't need a target ignore the
- * parameter. Alchemist (re-rolled dice) and Diplomat/Merchant (which target a
- * road or tile the player doesn't yet own/occupy, needing UI beyond a text
- * field) are not wired yet.
+ * Monopoly, Trade Monopoly, Merchant Fleet), one tile coordinate
+ * (Merchant), or two semicolon-separated tile coordinates (Inventor);
+ * cards that don't need a target ignore the parameter. Alchemist
+ * (re-rolled dice) and Diplomat (which targets a road the player doesn't
+ * yet own, needing UI beyond a text field) are not wired yet.
  *
  */
 public enum ProgressCardType {
@@ -154,6 +154,46 @@ public enum ProgressCardType {
   }),
 
   // Trade deck.
+  // Merchant's target is one tile coordinate, "x,y,z".
+  MERCHANT(CityImprovement.TRADE, "Merchant", (ref, player, target) -> {
+    HexCoordinate coord = parseHexCoordinate(target);
+    Tile destination = null;
+    Tile previousTile = null;
+    for (Tile tile : ref.getBoard().getTiles()) {
+      if (tile.getCoordinate().equals(coord)) {
+        destination = tile;
+      }
+      if (tile.getMerchantOwner() >= 0) {
+        previousTile = tile;
+      }
+    }
+    if (destination == null) {
+      return "You played Merchant but named a tile that isn't on the board.";
+    }
+    if (destination.getType().getType() == null) {
+      return "You played Merchant but that hex doesn't produce a resource.";
+    }
+    int previousOwner = previousTile == null ? -1
+        : previousTile.getMerchantOwner();
+    if (previousTile != null) {
+      previousTile.setMerchantOwner(-1);
+    }
+    destination.setMerchantOwner(player.getID());
+    // ponytail: the real rule requires the hex be adjacent to one of your
+    // settlements/cities; skipped since no other targeted card enforces
+    // board-position eligibility either. Add if this gets exploited.
+    if (previousOwner != player.getID()) {
+      if (previousOwner >= 0) {
+        ref.getPlayerByID(previousOwner).addVictoryPoints(-1);
+      }
+      player.addVictoryPoints(1);
+    }
+    return String.format(
+        "You played Merchant and can trade %s 2:1 with the bank as long as "
+            + "your merchant remains on that hex.",
+        destination.getType().getType());
+  }),
+
   MASTER_MERCHANT(CityImprovement.TRADE, "Master Merchant", (ref, player, target) -> {
     Player richest = null;
     double richestCount = 0;
