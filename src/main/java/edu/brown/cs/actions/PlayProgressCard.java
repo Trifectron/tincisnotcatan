@@ -20,9 +20,15 @@ public class PlayProgressCard implements Action {
   private Player _player;
   private Referee _ref;
   private ProgressCardType _card;
+  private String _target;
   public static final String ID = "playProgressCard";
 
   public PlayProgressCard(Referee ref, int playerID, String card) {
+    this(ref, playerID, card, null);
+  }
+
+  public PlayProgressCard(Referee ref, int playerID, String card,
+      String target) {
     assert ref != null;
     _ref = ref;
     _player = _ref.getPlayerByID(playerID);
@@ -36,6 +42,7 @@ public class PlayProgressCard implements Action {
       throw new IllegalArgumentException(String.format(
           "Unknown progress card: %s", card));
     }
+    _target = target;
   }
 
   @Override
@@ -58,7 +65,7 @@ public class PlayProgressCard implements Action {
     }
 
     // The Action:
-    String playerMessage = _card.play(_ref, _player);
+    String playerMessage = _card.play(_ref, _player, _target);
     _player.removeProgressCard(_card);
 
     // Formatting the response:

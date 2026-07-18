@@ -12,24 +12,23 @@ import edu.brown.cs.board.TileType;
  * The catalog of Cities &amp; Knights progress cards. Each card belongs to one
  * improvement deck (Trade, Politics, or Science) and carries its own effect.
  *
- * Cards whose real effect requires the player to name a target (Inventor's
- * tile swap, Alchemist's re-rolled dice, Road Building's placement, Diplomat's
- * road pick, Bishop's robber target, Merchant/Merchant Fleet's trade hex,
- * Resource Monopoly/Trade Monopoly's named resource) are not wired yet:
- * PlayProgressCard only carries a card name, no extra choice parameter.
- * ponytail: extend PlayProgressCard with a target field (like PlayMonopoly's
- * resource param) when those cards are added.
+ * Cards that need a player-chosen target take it as a string in
+ * {@link #play(Referee, Player, String)} (e.g. Resource Monopoly's resource
+ * name); cards that don't need one ignore the parameter. Remaining cards
+ * (Inventor's tile swap, Alchemist's re-rolled dice, Road Building's
+ * placement, Diplomat's road pick, Bishop's robber target, Merchant/Merchant
+ * Fleet's trade hex, Trade Monopoly) are not wired yet.
  *
  */
 public enum ProgressCardType {
 
   // Science deck.
-  PRINTER(CityImprovement.SCIENCE, "Printer", (ref, player) -> {
+  PRINTER(CityImprovement.SCIENCE, "Printer", (ref, player, target) -> {
     player.addVictoryPoints(1);
     return "You played Printer and gained a victory point.";
   }),
 
-  IRRIGATION(CityImprovement.SCIENCE, "Irrigation", (ref, player) -> {
+  IRRIGATION(CityImprovement.SCIENCE, "Irrigation", (ref, player, target) -> {
     int wheat = 0;
     for (Tile tile : ref.getBoard().getTiles()) {
       if (tile.getType() != TileType.WHEAT) {
@@ -51,7 +50,7 @@ public enum ProgressCardType {
         : "You played Irrigation but have no settlements or cities on a wheat hex.";
   }),
 
-  ENGINEER(CityImprovement.SCIENCE, "Engineer", (ref, player) -> {
+  ENGINEER(CityImprovement.SCIENCE, "Engineer", (ref, player, target) -> {
     for (Intersection i : ref.getBoard().getIntersections().values()) {
       if (i.getBuilding() instanceof City && i.getBuilding().getPlayer()
           .equals(player) && !((City) i.getBuilding()).hasWall()) {
@@ -63,30 +62,30 @@ public enum ProgressCardType {
   }),
 
   // Politics deck.
-  CONSTITUTION(CityImprovement.POLITICS, "Constitution", (ref, player) -> {
+  CONSTITUTION(CityImprovement.POLITICS, "Constitution", (ref, player, target) -> {
     player.addVictoryPoints(1);
     return "You played Constitution and gained a victory point.";
   }),
 
-  INTRIGUE(CityImprovement.POLITICS, "Intrigue", (ref, player) -> {
-    Knight target = null;
+  INTRIGUE(CityImprovement.POLITICS, "Intrigue", (ref, player, target) -> {
+    Knight strongest = null;
     for (Intersection i : ref.getBoard().getIntersections().values()) {
       Knight k = i.getKnight();
       if (k != null && k.isActive() && !k.getPlayer().equals(player)
-          && (target == null || k.getTier() > target.getTier())) {
-        target = k;
+          && (strongest == null || k.getTier() > strongest.getTier())) {
+        strongest = k;
       }
     }
-    if (target == null) {
+    if (strongest == null) {
       return "You played Intrigue but no opposing knight is active.";
     }
-    target.deactivate();
+    strongest.deactivate();
     return String.format(
         "You played Intrigue and deactivated %s's tier-%d knight.",
-        target.getPlayer().getName(), target.getTier());
+        strongest.getPlayer().getName(), strongest.getTier());
   }),
 
-  WEDDING(CityImprovement.POLITICS, "Wedding", (ref, player) -> {
+  WEDDING(CityImprovement.POLITICS, "Wedding", (ref, player, target) -> {
     int received = 0;
     for (Player other : ref.getPlayers()) {
       if (other.equals(player)
@@ -118,7 +117,7 @@ public enum ProgressCardType {
   }),
 
   // Trade deck.
-  MASTER_MERCHANT(CityImprovement.TRADE, "Master Merchant", (ref, player) -> {
+  MASTER_MERCHANT(CityImprovement.TRADE, "Master Merchant", (ref, player, target) -> {
     Player richest = null;
     double richestCount = 0;
     for (Player other : ref.getPlayers()) {
@@ -160,6 +159,31 @@ public enum ProgressCardType {
     return String.format(
         "You played Master Merchant and took %d resource card(s) from %s.",
         received, richest.getName());
+  }),
+
+  RESOURCE_MONOPOLY(CityImprovement.TRADE, "Resource Monopoly", (ref, player,
+      target) -> {
+    Resource res = Resource.stringToResource(target);
+    int received = 0;
+    for (Player other : ref.getPlayers()) {
+      if (other.equals(player)) {
+        continue;
+      }
+      double has = other.getResources().get(res);
+      if (has <= 0) {
+        continue;
+      }
+      other.removeResource(res, 1, ref.getBank());
+      player.addResource(res, 1, ref.getBank());
+      received++;
+    }
+    return received > 0
+        ? String.format(
+            "You played Resource Monopoly and took %d %s card(s).", received,
+            res.toString())
+        : String.format(
+            "You played Resource Monopoly but no other player has any %s.",
+            res.toString());
   });
 
   private final CityImprovement _deck;
@@ -188,7 +212,8 @@ public enum ProgressCardType {
   }
 
   /**
-   * Plays this card, applying its effect.
+   * Plays this card with no target, applying its effect. Only valid for
+   * cards that don't need a player-chosen target.
    *
    * @param ref
    *          The referee for the game.
@@ -197,7 +222,23 @@ public enum ProgressCardType {
    * @return A message describing what happened.
    */
   public String play(Referee ref, Player player) {
-    return _effect.apply(ref, player);
+    return play(ref, player, null);
+  }
+
+  /**
+   * Plays this card, applying its effect.
+   *
+   * @param ref
+   *          The referee for the game.
+   * @param player
+   *          The player playing the card.
+   * @param target
+   *          A player-chosen target (e.g. a resource name for Resource
+   *          Monopoly); ignored by cards that don't need one.
+   * @return A message describing what happened.
+   */
+  public String play(Referee ref, Player player, String target) {
+    return _effect.apply(ref, player, target);
   }
 
   /**

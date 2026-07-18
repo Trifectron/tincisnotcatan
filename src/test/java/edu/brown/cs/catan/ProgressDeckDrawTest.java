@@ -38,9 +38,13 @@ public class ProgressDeckDrawTest {
     assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
         ProgressCardType.INTRIGUE, ProgressCardType.WEDDING), drawnPolitics);
     assertNull(ref.drawProgressCard(CityImprovement.POLITICS));
-    // Trade deck holds Master Merchant.
-    assertEquals(ProgressCardType.MASTER_MERCHANT,
-        ref.drawProgressCard(CityImprovement.TRADE));
+    // Trade deck holds Master Merchant and Resource Monopoly.
+    Set<ProgressCardType> drawnTrade = new HashSet<>();
+    for (int i = 0; i < 2; i++) {
+      drawnTrade.add(ref.drawProgressCard(CityImprovement.TRADE));
+    }
+    assertEquals(EnumSet.of(ProgressCardType.MASTER_MERCHANT,
+        ProgressCardType.RESOURCE_MONOPOLY), drawnTrade);
     assertNull(ref.drawProgressCard(CityImprovement.TRADE));
   }
 

@@ -131,7 +131,8 @@ public class ActionFactory {
               .get("improvement").getAsString());
         case PlayProgressCard.ID:
           return new PlayProgressCard(_referee, playerID, actionJSON
-              .get("card").getAsString());
+              .get("card").getAsString(), actionJSON.has("target")
+                  ? actionJSON.get("target").getAsString() : null);
         case BuildKnight.ID:
           return new BuildKnight(_referee, playerID,
               toIntersectionCoordinate(actionJSON.get("coordinate")

@@ -56,8 +56,13 @@ public class ProgressCardTest {
         ProgressCardType.INTRIGUE, ProgressCardType.WEDDING), drawnPolitics);
 
     ProgressCardDeck trade = new ProgressCardDeck(CityImprovement.TRADE);
-    assertEquals(1, trade.size());
-    assertEquals(ProgressCardType.MASTER_MERCHANT, trade.draw());
+    assertEquals(2, trade.size());
+    Set<ProgressCardType> drawnTrade = new HashSet<>();
+    while (!trade.isEmpty()) {
+      drawnTrade.add(trade.draw());
+    }
+    assertEquals(EnumSet.of(ProgressCardType.MASTER_MERCHANT,
+        ProgressCardType.RESOURCE_MONOPOLY), drawnTrade);
     assertNull(trade.draw());
   }
 
@@ -253,5 +258,38 @@ public class ProgressCardTest {
 
     String msg = ProgressCardType.MASTER_MERCHANT.play(ref, pa);
     assertTrue(msg.contains("no other player holds any cards"));
+  }
+
+  @Test
+  public void resourceMonopolyTakesNamedResourceFromEveryOtherPlayer() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    int p2 = ref.addPlayer("C", "#222222");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+    Player pc = ref.getPlayerByID(p2);
+
+    pb.addResource(Resource.ORE, 2, ref.getBank());
+    pc.addResource(Resource.WHEAT, 1, ref.getBank());
+
+    double paBefore = pa.getResources().get(Resource.ORE);
+    String msg = ProgressCardType.RESOURCE_MONOPOLY.play(ref, pa, "ore");
+
+    assertEquals(paBefore + 1, pa.getResources().get(Resource.ORE), 0.0001);
+    assertEquals(1, pb.getResources().get(Resource.ORE), 0.0001);
+    assertEquals(0, pc.getResources().get(Resource.ORE), 0.0001);
+    assertTrue(msg.contains("took 1 ore"));
+  }
+
+  @Test
+  public void resourceMonopolyNoOpWhenNoOneHasTheResource() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+
+    String msg = ProgressCardType.RESOURCE_MONOPOLY.play(ref, pa, "ore");
+    assertTrue(msg.contains("no other player has any ore"));
   }
 }

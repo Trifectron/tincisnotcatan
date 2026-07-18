@@ -15,7 +15,10 @@ public interface ProgressCardEffect {
    *          The referee for the game.
    * @param player
    *          The player who played the card.
+   * @param target
+   *          An optional player-chosen target (e.g. a resource name for
+   *          Resource Monopoly); null for cards that don't need one.
    * @return A message describing what happened, shown to the player.
    */
-  String apply(Referee ref, Player player);
+  String apply(Referee ref, Player player, String target);
 }
