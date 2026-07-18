@@ -459,7 +459,18 @@ public class MasterReferee implements Referee {
         }
       }
     }
+    Player current = currentPlayer();
+    if (current != null && id == current.getID()
+        && _turn.getMerchantFleetResource() != null) {
+      Resource r = _turn.getMerchantFleetResource();
+      rates.put(r, Math.min(rates.get(r), 2));
+    }
     return rates;
+  }
+
+  @Override
+  public void setMerchantFleetResource(Resource res) {
+    _turn.setMerchantFleetResource(res);
   }
 
   @Override
@@ -636,6 +647,12 @@ public class MasterReferee implements Referee {
     @Override
     public Map<Resource, Double> getBankRates(int player) {
       return _referee.getBankRates(player);
+    }
+
+    @Override
+    public void setMerchantFleetResource(Resource res) {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyReferee cannot set the Merchant Fleet resource.");
     }
 
     @Override

@@ -22,6 +22,7 @@ public class Turn {
   private final int _turnNum;
   private List<Collection<FollowUpAction>> _followUps;
   private Map<DevelopmentCard, Integer> _initialDevCardHand;
+  private Resource _merchantFleetResource;
 
   /**
    * Creates a Turn.
@@ -51,6 +52,7 @@ public class Turn {
     _turnNum = turn.getTurnNum();
     _followUps = turn.getAllFollowUps();
     _initialDevCardHand = new HashMap<>(turn.getInitialDevCards());
+    _merchantFleetResource = turn.getMerchantFleetResource();
   }
 
   /* Returns all FollowUps. */
@@ -158,6 +160,28 @@ public class Turn {
    */
   public boolean hadInitialDevCard(DevelopmentCard dev) {
     return _initialDevCardHand.get(dev) > 0;
+  }
+
+  /**
+   * Sets the resource the current player's Merchant Fleet progress card
+   * (Cities &amp; Knights) grants a 2:1 bank rate on for the rest of this turn.
+   * ponytail: scoped to a single Turn (not tracked past it) since players can
+   * only trade with the bank on their own turn anyway, so "until your next
+   * turn" and "for the rest of this turn" are equivalent here.
+   *
+   * @param res
+   *          The resource to grant a 2:1 rate on.
+   */
+  public void setMerchantFleetResource(Resource res) {
+    _merchantFleetResource = res;
+  }
+
+  /**
+   * @return The resource Merchant Fleet granted a 2:1 bank rate on this turn,
+   *         or null if it hasn't been played.
+   */
+  public Resource getMerchantFleetResource() {
+    return _merchantFleetResource;
   }
 
 }

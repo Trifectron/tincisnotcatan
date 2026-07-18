@@ -75,6 +75,15 @@ public interface Referee {
 
   Map<Resource, Double> getBankRates(int playerID);
 
+  /**
+   * Grants the current player a 2:1 bank rate on the given resource for the
+   * rest of this turn (Cities &amp; Knights Merchant Fleet progress card).
+   *
+   * @param res
+   *          The resource to grant a 2:1 rate on.
+   */
+  void setMerchantFleetResource(Resource res);
+
   Board getBoard();
 
   Player getPlayerByID(int id);
