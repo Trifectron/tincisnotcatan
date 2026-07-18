@@ -14,10 +14,11 @@ import edu.brown.cs.board.TileType;
  *
  * Cards whose real effect requires the player to name a target (Inventor's
  * tile swap, Alchemist's re-rolled dice, Road Building's placement, Diplomat's
- * road pick, Bishop's robber target, Merchant/Merchant Fleet's trade hex) are
- * not wired yet: PlayProgressCard only carries a card name, no extra choice
- * parameter. ponytail: extend PlayProgressCard with a target field (like
- * PlayMonopoly's resource param) when those cards are added.
+ * road pick, Bishop's robber target, Merchant/Merchant Fleet's trade hex,
+ * Resource Monopoly/Trade Monopoly's named resource) are not wired yet:
+ * PlayProgressCard only carries a card name, no extra choice parameter.
+ * ponytail: extend PlayProgressCard with a target field (like PlayMonopoly's
+ * resource param) when those cards are added.
  *
  */
 public enum ProgressCardType {
@@ -114,6 +115,51 @@ public enum ProgressCardType {
         ? String.format("You played Wedding and received %d resource card(s).",
             received)
         : "You played Wedding but no player has more victory points than you.";
+  }),
+
+  // Trade deck.
+  MASTER_MERCHANT(CityImprovement.TRADE, "Master Merchant", (ref, player) -> {
+    Player richest = null;
+    double richestCount = 0;
+    for (Player other : ref.getPlayers()) {
+      if (other.equals(player)) {
+        continue;
+      }
+      double count = 0;
+      for (double n : other.getResources().values()) {
+        count += n;
+      }
+      // ponytail: ties keep the first player found; the real rule lets the
+      // card's player break ties, which needs a target parameter to support.
+      if (count > richestCount) {
+        richestCount = count;
+        richest = other;
+      }
+    }
+    if (richest == null) {
+      return "You played Master Merchant but no other player holds any cards.";
+    }
+    int received = 0;
+    for (int i = 0; i < 2; i++) {
+      Resource biggest = null;
+      double max = 0;
+      for (Map.Entry<Resource, Double> entry : richest.getResources()
+          .entrySet()) {
+        if (entry.getValue() > max) {
+          max = entry.getValue();
+          biggest = entry.getKey();
+        }
+      }
+      if (biggest == null) {
+        break;
+      }
+      richest.removeResource(biggest, 1, ref.getBank());
+      player.addResource(biggest, 1, ref.getBank());
+      received++;
+    }
+    return String.format(
+        "You played Master Merchant and took %d resource card(s) from %s.",
+        received, richest.getName());
   });
 
   private final CityImprovement _deck;

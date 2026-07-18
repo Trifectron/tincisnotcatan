@@ -55,8 +55,10 @@ public class ProgressCardTest {
     assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
         ProgressCardType.INTRIGUE, ProgressCardType.WEDDING), drawnPolitics);
 
-    // A track with no wired cards yields an empty deck, not an error.
-    assertTrue(new ProgressCardDeck(CityImprovement.TRADE).isEmpty());
+    ProgressCardDeck trade = new ProgressCardDeck(CityImprovement.TRADE);
+    assertEquals(1, trade.size());
+    assertEquals(ProgressCardType.MASTER_MERCHANT, trade.draw());
+    assertNull(trade.draw());
   }
 
   @Test
@@ -221,5 +223,35 @@ public class ProgressCardTest {
 
     String msg = ProgressCardType.WEDDING.play(ref, pa);
     assertTrue(msg.contains("no player has more victory points"));
+  }
+
+  @Test
+  public void masterMerchantTakesFromThePlayerWithTheMostCards() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+
+    pb.addResource(Resource.WHEAT, 5, ref.getBank());
+
+    double paBefore = pa.getResources().get(Resource.WHEAT);
+    double pbBefore = pb.getResources().get(Resource.WHEAT);
+    String msg = ProgressCardType.MASTER_MERCHANT.play(ref, pa);
+
+    assertEquals(paBefore + 2, pa.getResources().get(Resource.WHEAT), 0.0001);
+    assertEquals(pbBefore - 2, pb.getResources().get(Resource.WHEAT), 0.0001);
+    assertTrue(msg.contains("took 2 resource"));
+  }
+
+  @Test
+  public void masterMerchantNoOpWhenNoOneHoldsCards() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+
+    String msg = ProgressCardType.MASTER_MERCHANT.play(ref, pa);
+    assertTrue(msg.contains("no other player holds any cards"));
   }
 }

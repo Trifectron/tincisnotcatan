@@ -38,7 +38,9 @@ public class ProgressDeckDrawTest {
     assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
         ProgressCardType.INTRIGUE, ProgressCardType.WEDDING), drawnPolitics);
     assertNull(ref.drawProgressCard(CityImprovement.POLITICS));
-    // Trade has no wired cards yet: an empty deck, not an error.
+    // Trade deck holds Master Merchant.
+    assertEquals(ProgressCardType.MASTER_MERCHANT,
+        ref.drawProgressCard(CityImprovement.TRADE));
     assertNull(ref.drawProgressCard(CityImprovement.TRADE));
   }
 
