@@ -4,12 +4,18 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
+import com.google.gson.JsonObject;
+
 import edu.brown.cs.actions.FollowUpAction;
 import edu.brown.cs.actions.MoveRobber;
+import edu.brown.cs.actions.RollDice;
 import edu.brown.cs.board.City;
 import edu.brown.cs.board.HexCoordinate;
 import edu.brown.cs.board.Intersection;
+import edu.brown.cs.board.IntersectionCoordinate;
 import edu.brown.cs.board.Knight;
+import edu.brown.cs.board.Path;
+import edu.brown.cs.board.PathCoordinate;
 import edu.brown.cs.board.Tile;
 import edu.brown.cs.board.TileType;
 
@@ -20,10 +26,10 @@ import edu.brown.cs.board.TileType;
  * Cards that need a player-chosen target take it as a string in
  * {@link #play(Referee, Player, String)}: a resource name (Resource
  * Monopoly, Trade Monopoly, Merchant Fleet), one tile coordinate
- * (Merchant), or two semicolon-separated tile coordinates (Inventor);
- * cards that don't need a target ignore the parameter. Alchemist
- * (re-rolled dice) and Diplomat (which targets a road the player doesn't
- * yet own, needing UI beyond a text field) are not wired yet.
+ * (Merchant), two semicolon-separated tile coordinates (Inventor), a roll
+ * total from 2-12 (Alchemist), or two semicolon-separated intersections,
+ * each three pipe-separated tile coordinates (Diplomat); cards that don't
+ * need a target ignore the parameter.
  *
  */
 public enum ProgressCardType {
@@ -90,6 +96,30 @@ public enum ProgressCardType {
     return "You played Inventor and swapped two tiles' numbers.";
   }),
 
+  // Alchemist's target is the roll total to use instead of a random roll,
+  // e.g. "8". Played after rolling but before production is resolved.
+  ALCHEMIST(CityImprovement.SCIENCE, "Alchemist", (ref, player, target) -> {
+    int roll;
+    try {
+      roll = Integer.parseInt(target);
+    } catch (NumberFormatException e) {
+      return "You played Alchemist but didn't name a valid roll.";
+    }
+    if (roll < 2 || roll > 12) {
+      return "You played Alchemist but named a roll outside 2-12.";
+    }
+    FollowUpAction pending = ref.getNextFollowUp(player.getID());
+    if (!(pending instanceof RollDice)) {
+      return "You played Alchemist but it isn't time to roll the dice.";
+    }
+    RollDice rollAction = (RollDice) pending;
+    rollAction.setupAction(ref, player.getID(), new JsonObject());
+    rollAction.forceRoll(roll);
+    rollAction.execute();
+    return String.format(
+        "You played Alchemist and forced the dice to produce %d.", roll);
+  }),
+
   // Politics deck.
   CONSTITUTION(CityImprovement.POLITICS, "Constitution", (ref, player, target) -> {
     player.addVictoryPoints(1);
@@ -151,6 +181,34 @@ public enum ProgressCardType {
     ref.addFollowUp(followUp);
     return "You played Bishop. Move the robber; whoever ends up on that "
         + "hex must give you a card.";
+  }),
+
+  // Diplomat's target is two semicolon-separated intersections, each three
+  // pipe-separated tile coordinates: "x,y,z|x,y,z|x,y,z;x,y,z|x,y,z|x,y,z".
+  DIPLOMAT(CityImprovement.POLITICS, "Diplomat", (ref, player, target) -> {
+    String[] intersections = target.split(";");
+    if (intersections.length != 2) {
+      return "You played Diplomat but didn't name a road.";
+    }
+    IntersectionCoordinate start = parseIntersectionCoordinate(
+        intersections[0]);
+    IntersectionCoordinate end = parseIntersectionCoordinate(intersections[1]);
+    Path path = ref.getBoard().getPaths().get(new PathCoordinate(start, end));
+    if (path == null || path.getRoad() == null) {
+      return "You played Diplomat but named a location with no road.";
+    }
+    // ponytail: the real rule requires the road be "open" (not sealed between
+    // two buildings on both ends); exact official wording is uncertain, so
+    // this treats a road with at least one building-free endpoint as open.
+    if (path.getStart().getBuilding() != null
+        && path.getEnd().getBuilding() != null) {
+      return "You played Diplomat but that road is sealed between two "
+          + "buildings.";
+    }
+    Player owner = path.getRoad().getPlayer();
+    path.removeRoad();
+    return String.format("You played Diplomat and removed %s's road.",
+        owner.getName());
   }),
 
   // Trade deck.
@@ -371,5 +429,14 @@ public enum ProgressCardType {
     String[] parts = str.split(",");
     return new HexCoordinate(Integer.parseInt(parts[0]),
         Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+  }
+
+  // Parses "x,y,z|x,y,z|x,y,z" into an IntersectionCoordinate, for
+  // Diplomat's road targets.
+  private static IntersectionCoordinate parseIntersectionCoordinate(
+      String str) {
+    String[] parts = str.split("\\|");
+    return new IntersectionCoordinate(parseHexCoordinate(parts[0]),
+        parseHexCoordinate(parts[1]), parseHexCoordinate(parts[2]));
   }
 }
