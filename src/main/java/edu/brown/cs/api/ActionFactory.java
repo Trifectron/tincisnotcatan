@@ -15,6 +15,7 @@ import edu.brown.cs.actions.FollowUpAction;
 import edu.brown.cs.actions.ImproveCity;
 import edu.brown.cs.actions.PlayKnight;
 import edu.brown.cs.actions.PlayMonopoly;
+import edu.brown.cs.actions.PlayProgressCard;
 import edu.brown.cs.actions.PlayRoadBuilding;
 import edu.brown.cs.actions.PlayYearOfPlenty;
 import edu.brown.cs.actions.ProposeTrade;
@@ -123,6 +124,9 @@ public class ActionFactory {
         case ImproveCity.ID:
           return new ImproveCity(_referee, playerID, actionJSON
               .get("improvement").getAsString());
+        case PlayProgressCard.ID:
+          return new PlayProgressCard(_referee, playerID, actionJSON
+              .get("card").getAsString());
         default:
           String err = String.format("The action %s does not exist.", action);
           throw new IllegalArgumentException(err);

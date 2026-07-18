@@ -1,5 +1,6 @@
 package edu.brown.cs.catan;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -139,5 +140,27 @@ public interface Player {
   boolean canImproveCity(CityImprovement improvement);
 
   void improveCity(CityImprovement improvement);
+
+  /**
+   * The player's held Cities &amp; Knights progress cards (may contain
+   * duplicates). Empty for base-game players.
+   *
+   * @return An unmodifiable list of the player's progress cards.
+   */
+  List<ProgressCardType> getProgressCards();
+
+  void addProgressCard(ProgressCardType card);
+
+  /**
+   * Removes one copy of the given progress card from the player's hand.
+   *
+   * @return Whether a copy was held and removed.
+   */
+  boolean removeProgressCard(ProgressCardType card);
+
+  /**
+   * Adds victory points directly (e.g. from a victory-point progress card).
+   */
+  void addVictoryPoints(int points);
 
 }

@@ -1,7 +1,9 @@
 package edu.brown.cs.catan;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import edu.brown.cs.actions.CatanFormats;
@@ -25,6 +27,8 @@ public class HumanPlayer implements Player {
   private final Map<Commodity, Double> commodities;
   // Cities & Knights city-improvement levels (all zero in base games):
   private final Map<CityImprovement, Integer> cityImprovements;
+  // Cities & Knights progress cards held (empty in base games):
+  private final List<ProgressCardType> progressCards;
 
   // Remaining Buildings:
   private int numRoads;
@@ -73,6 +77,8 @@ public class HumanPlayer implements Player {
     for (CityImprovement improvement : CityImprovement.values()) {
       cityImprovements.put(improvement, 0);
     }
+    // Initialize progress card hand:
+    this.progressCards = new ArrayList<>();
   }
 
   @Override
@@ -263,6 +269,26 @@ public class HumanPlayer implements Player {
       removeCommodity(improvement.getCommodity(), level + 1);
       cityImprovements.put(improvement, level + 1);
     }
+  }
+
+  @Override
+  public List<ProgressCardType> getProgressCards() {
+    return Collections.unmodifiableList(progressCards);
+  }
+
+  @Override
+  public void addProgressCard(ProgressCardType card) {
+    progressCards.add(card);
+  }
+
+  @Override
+  public boolean removeProgressCard(ProgressCardType card) {
+    return progressCards.remove(card);
+  }
+
+  @Override
+  public void addVictoryPoints(int points) {
+    numVictoryPoints += points;
   }
 
   @Override
@@ -661,6 +687,29 @@ public class HumanPlayer implements Player {
     public void improveCity(CityImprovement improvement) {
       throw new UnsupportedOperationException(
           "A ReadOnlyPlayer cannot improve cities.");
+    }
+
+    @Override
+    public List<ProgressCardType> getProgressCards() {
+      return _player.getProgressCards();
+    }
+
+    @Override
+    public void addProgressCard(ProgressCardType card) {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyPlayer cannot add progress cards.");
+    }
+
+    @Override
+    public boolean removeProgressCard(ProgressCardType card) {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyPlayer cannot remove progress cards.");
+    }
+
+    @Override
+    public void addVictoryPoints(int points) {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyPlayer cannot add victory points.");
     }
 
     @Override

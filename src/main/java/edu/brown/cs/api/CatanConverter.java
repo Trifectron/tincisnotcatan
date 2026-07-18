@@ -27,6 +27,7 @@ import edu.brown.cs.catan.Commodity;
 import edu.brown.cs.catan.DevelopmentCard;
 import edu.brown.cs.catan.GameSettings;
 import edu.brown.cs.catan.Player;
+import edu.brown.cs.catan.ProgressCardType;
 import edu.brown.cs.catan.Referee;
 import edu.brown.cs.catan.Referee.GameStatus;
 import edu.brown.cs.catan.Resource;
@@ -118,6 +119,7 @@ public class CatanConverter {
     private final Map<Resource, Double> resources;
     private final Map<Commodity, Double> commodities;
     private final Map<CityImprovement, Integer> improvements;
+    private final List<ProgressCardType> progressCards;
     private final Map<DevelopmentCard, Integer> devCards;
     private boolean canBuildRoad;
     private boolean canBuildSettlement;
@@ -128,6 +130,7 @@ public class CatanConverter {
       resources = player.getResources();
       commodities = player.getCommodities();
       improvements = player.getCityImprovements();
+      progressCards = player.getProgressCards();
       devCards = player.getDevCards();
       canBuildRoad = player.canBuildRoad();
       canBuildSettlement = player.canBuildSettlement();
