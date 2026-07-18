@@ -22,29 +22,33 @@ public class ProgressDeckDrawTest {
   @Test
   public void citiesAndKnightsGameDrawsFromTrackDecks() {
     Referee ref = citiesAndKnightsReferee();
-    // The Science deck holds Printer, Irrigation, and Engineer.
+    // The Science deck holds Printer, Irrigation, Engineer, and Inventor.
     Set<ProgressCardType> drawnScience = new HashSet<>();
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
       drawnScience.add(ref.drawProgressCard(CityImprovement.SCIENCE));
     }
     assertEquals(EnumSet.of(ProgressCardType.PRINTER,
-        ProgressCardType.IRRIGATION, ProgressCardType.ENGINEER), drawnScience);
+        ProgressCardType.IRRIGATION, ProgressCardType.ENGINEER,
+        ProgressCardType.INVENTOR), drawnScience);
     assertNull(ref.drawProgressCard(CityImprovement.SCIENCE));
-    // The Politics deck holds Constitution, Intrigue, and Wedding.
+    // The Politics deck holds Constitution, Intrigue, Wedding, and Bishop.
     Set<ProgressCardType> drawnPolitics = new HashSet<>();
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 4; i++) {
       drawnPolitics.add(ref.drawProgressCard(CityImprovement.POLITICS));
     }
     assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
-        ProgressCardType.INTRIGUE, ProgressCardType.WEDDING), drawnPolitics);
+        ProgressCardType.INTRIGUE, ProgressCardType.WEDDING,
+        ProgressCardType.BISHOP), drawnPolitics);
     assertNull(ref.drawProgressCard(CityImprovement.POLITICS));
-    // Trade deck holds Master Merchant and Resource Monopoly.
+    // Trade deck holds Master Merchant, Resource Monopoly, Trade Monopoly,
+    // and Merchant Fleet.
     Set<ProgressCardType> drawnTrade = new HashSet<>();
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < 4; i++) {
       drawnTrade.add(ref.drawProgressCard(CityImprovement.TRADE));
     }
     assertEquals(EnumSet.of(ProgressCardType.MASTER_MERCHANT,
-        ProgressCardType.RESOURCE_MONOPOLY), drawnTrade);
+        ProgressCardType.RESOURCE_MONOPOLY, ProgressCardType.TRADE_MONOPOLY,
+        ProgressCardType.MERCHANT_FLEET), drawnTrade);
     assertNull(ref.drawProgressCard(CityImprovement.TRADE));
   }
 

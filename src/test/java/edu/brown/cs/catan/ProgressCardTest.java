@@ -37,32 +37,35 @@ public class ProgressCardTest {
   @Test
   public void deckHoldsOnlyItsTrackAndDrainsToEmpty() {
     ProgressCardDeck science = new ProgressCardDeck(CityImprovement.SCIENCE);
-    assertEquals(3, science.size());
+    assertEquals(4, science.size());
     Set<ProgressCardType> drawn = new HashSet<>();
     while (!science.isEmpty()) {
       drawn.add(science.draw());
     }
     assertEquals(EnumSet.of(ProgressCardType.PRINTER,
-        ProgressCardType.IRRIGATION, ProgressCardType.ENGINEER), drawn);
+        ProgressCardType.IRRIGATION, ProgressCardType.ENGINEER,
+        ProgressCardType.INVENTOR), drawn);
     assertNull(science.draw());
 
     ProgressCardDeck politics = new ProgressCardDeck(CityImprovement.POLITICS);
-    assertEquals(3, politics.size());
+    assertEquals(4, politics.size());
     Set<ProgressCardType> drawnPolitics = new HashSet<>();
     while (!politics.isEmpty()) {
       drawnPolitics.add(politics.draw());
     }
     assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
-        ProgressCardType.INTRIGUE, ProgressCardType.WEDDING), drawnPolitics);
+        ProgressCardType.INTRIGUE, ProgressCardType.WEDDING,
+        ProgressCardType.BISHOP), drawnPolitics);
 
     ProgressCardDeck trade = new ProgressCardDeck(CityImprovement.TRADE);
-    assertEquals(2, trade.size());
+    assertEquals(4, trade.size());
     Set<ProgressCardType> drawnTrade = new HashSet<>();
     while (!trade.isEmpty()) {
       drawnTrade.add(trade.draw());
     }
     assertEquals(EnumSet.of(ProgressCardType.MASTER_MERCHANT,
-        ProgressCardType.RESOURCE_MONOPOLY), drawnTrade);
+        ProgressCardType.RESOURCE_MONOPOLY, ProgressCardType.TRADE_MONOPOLY,
+        ProgressCardType.MERCHANT_FLEET), drawnTrade);
     assertNull(trade.draw());
   }
 
@@ -261,7 +264,7 @@ public class ProgressCardTest {
   }
 
   @Test
-  public void resourceMonopolyTakesNamedResourceFromEveryOtherPlayer() {
+  public void resourceMonopolyTakesAllNamedResourceFromEveryOtherPlayer() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");
     int p1 = ref.addPlayer("B", "#111111");
@@ -271,15 +274,17 @@ public class ProgressCardTest {
     Player pc = ref.getPlayerByID(p2);
 
     pb.addResource(Resource.ORE, 2, ref.getBank());
+    pc.addResource(Resource.ORE, 3, ref.getBank());
     pc.addResource(Resource.WHEAT, 1, ref.getBank());
 
     double paBefore = pa.getResources().get(Resource.ORE);
     String msg = ProgressCardType.RESOURCE_MONOPOLY.play(ref, pa, "ore");
 
-    assertEquals(paBefore + 1, pa.getResources().get(Resource.ORE), 0.0001);
-    assertEquals(1, pb.getResources().get(Resource.ORE), 0.0001);
+    assertEquals(paBefore + 5, pa.getResources().get(Resource.ORE), 0.0001);
+    assertEquals(0, pb.getResources().get(Resource.ORE), 0.0001);
     assertEquals(0, pc.getResources().get(Resource.ORE), 0.0001);
-    assertTrue(msg.contains("took 1 ore"));
+    assertEquals(1, pc.getResources().get(Resource.WHEAT), 0.0001);
+    assertTrue(msg.contains("took all 5 ore"));
   }
 
   @Test
@@ -291,5 +296,107 @@ public class ProgressCardTest {
 
     String msg = ProgressCardType.RESOURCE_MONOPOLY.play(ref, pa, "ore");
     assertTrue(msg.contains("no other player has any ore"));
+  }
+
+  @Test
+  public void tradeMonopolyTakesOneNamedResourceFromEveryOtherPlayer() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    int p2 = ref.addPlayer("C", "#222222");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+    Player pc = ref.getPlayerByID(p2);
+
+    pb.addResource(Resource.ORE, 2, ref.getBank());
+    pc.addResource(Resource.ORE, 3, ref.getBank());
+
+    double paBefore = pa.getResources().get(Resource.ORE);
+    String msg = ProgressCardType.TRADE_MONOPOLY.play(ref, pa, "ore");
+
+    assertEquals(paBefore + 2, pa.getResources().get(Resource.ORE), 0.0001);
+    assertEquals(1, pb.getResources().get(Resource.ORE), 0.0001);
+    assertEquals(2, pc.getResources().get(Resource.ORE), 0.0001);
+    assertTrue(msg.contains("took 2 ore"));
+  }
+
+  @Test
+  public void tradeMonopolyNoOpWhenNoOneHasTheResource() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+
+    String msg = ProgressCardType.TRADE_MONOPOLY.play(ref, pa, "ore");
+    assertTrue(msg.contains("no other player has any ore"));
+  }
+
+  @Test
+  public void merchantFleetGrantsTwoToOneBankRateForTheResource() {
+    MasterReferee ref = cnkReferee();
+    ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    // Turn order is shuffled, so play as whichever player actually goes
+    // first rather than assuming it's the first one added.
+    Player current = ref.currentPlayer();
+    int currentID = current.getID();
+
+    double before = ref.getBankRates(currentID).get(Resource.ORE);
+    String msg = ProgressCardType.MERCHANT_FLEET.play(ref, current, "ore");
+
+    assertTrue(before > 2);
+    assertEquals(2, ref.getBankRates(currentID).get(Resource.ORE), 0.0001);
+    assertTrue(msg.contains("2:1"));
+  }
+
+  @Test
+  public void bishopEnqueuesAMoveRobberFollowUp() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    Player pa = ref.getPlayerByID(p0);
+
+    assertNull(ref.getNextFollowUp(p0));
+    String msg = ProgressCardType.BISHOP.play(ref, pa);
+
+    assertEquals("moveRobber", ref.getNextFollowUp(p0).getID());
+    assertTrue(msg.contains("robber"));
+  }
+
+  @Test
+  public void inventorSwapsTwoTilesNumbers() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    Player pa = ref.getPlayerByID(p0);
+
+    Tile first = ref.getBoard().getTiles().iterator().next();
+    Tile second = null;
+    for (Tile t : ref.getBoard().getTiles()) {
+      if (!t.equals(first) && t.getRollNumber() != first.getRollNumber()) {
+        second = t;
+        break;
+      }
+    }
+    int firstBefore = first.getRollNumber();
+    int secondBefore = second.getRollNumber();
+    String target = String.format("%d,%d,%d;%d,%d,%d",
+        first.getCoordinate().getX(), first.getCoordinate().getY(),
+        first.getCoordinate().getZ(), second.getCoordinate().getX(),
+        second.getCoordinate().getY(), second.getCoordinate().getZ());
+
+    String msg = ProgressCardType.INVENTOR.play(ref, pa, target);
+
+    assertEquals(secondBefore, first.getRollNumber());
+    assertEquals(firstBefore, second.getRollNumber());
+    assertTrue(msg.contains("swapped"));
+  }
+
+  @Test
+  public void inventorNoOpWithUnknownTile() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    Player pa = ref.getPlayerByID(p0);
+
+    String msg = ProgressCardType.INVENTOR.play(ref, pa, "0,0,0;99,99,99");
+    assertTrue(msg.contains("isn't on the board"));
   }
 }
