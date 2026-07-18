@@ -23,7 +23,7 @@ import edu.brown.cs.catan.Resource;
  */
 public class Tile implements BoardTile {
   private final Collection<Intersection> _intersections;
-  private final int _rollNum;
+  private int _rollNum;
   private final TileType _type;
   private final HexCoordinate _coordinate;
   private boolean _hasRobber;
@@ -418,6 +418,17 @@ public class Tile implements BoardTile {
   @Override
   public int getRollNumber() {
     return _rollNum;
+  }
+
+  /**
+   * Sets the number that triggers this tile's production (Cities &amp; Knights
+   * Inventor progress card, which swaps two tiles' numbers).
+   *
+   * @param rollNum
+   *          The new roll number.
+   */
+  public void setRollNumber(int rollNum) {
+    _rollNum = rollNum;
   }
 
   @Override
