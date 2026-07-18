@@ -1,11 +1,20 @@
 package edu.brown.cs.catan;
 
+import edu.brown.cs.board.City;
+import edu.brown.cs.board.Intersection;
+import edu.brown.cs.board.Tile;
+import edu.brown.cs.board.TileType;
+
 /**
  * The catalog of Cities &amp; Knights progress cards. Each card belongs to one
  * improvement deck (Trade, Politics, or Science) and carries its own effect.
  *
- * Only a starter set of cards is wired so far; the remaining cards are added
- * one effect at a time. ponytail: grow the catalog per card, not all at once.
+ * Cards whose real effect requires the player to name a target (Inventor's
+ * tile swap, Alchemist's re-rolled dice, Road Building's placement, Diplomat's
+ * road pick, Bishop's robber target, Merchant/Merchant Fleet's trade hex) are
+ * not wired yet: PlayProgressCard only carries a card name, no extra choice
+ * parameter. ponytail: extend PlayProgressCard with a target field (like
+ * PlayMonopoly's resource param) when those cards are added.
  *
  */
 public enum ProgressCardType {
@@ -14,6 +23,39 @@ public enum ProgressCardType {
   PRINTER(CityImprovement.SCIENCE, "Printer", (ref, player) -> {
     player.addVictoryPoints(1);
     return "You played Printer and gained a victory point.";
+  }),
+
+  IRRIGATION(CityImprovement.SCIENCE, "Irrigation", (ref, player) -> {
+    int wheat = 0;
+    for (Tile tile : ref.getBoard().getTiles()) {
+      if (tile.getType() != TileType.WHEAT) {
+        continue;
+      }
+      for (Intersection i : tile.getIntersections()) {
+        if (i.getBuilding() == null || !i.getBuilding().getPlayer()
+            .equals(player)) {
+          continue;
+        }
+        wheat += i.getBuilding() instanceof City ? 4 : 2;
+      }
+    }
+    if (wheat > 0) {
+      player.addResource(Resource.WHEAT, wheat, ref.getBank());
+    }
+    return wheat > 0
+        ? String.format("You played Irrigation and received %d wheat.", wheat)
+        : "You played Irrigation but have no settlements or cities on a wheat hex.";
+  }),
+
+  ENGINEER(CityImprovement.SCIENCE, "Engineer", (ref, player) -> {
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      if (i.getBuilding() instanceof City && i.getBuilding().getPlayer()
+          .equals(player) && !((City) i.getBuilding()).hasWall()) {
+        ((City) i.getBuilding()).buildWall();
+        return "You played Engineer and built a free city wall.";
+      }
+    }
+    return "You played Engineer but have no unwalled city to fortify.";
   }),
 
   // Politics deck.

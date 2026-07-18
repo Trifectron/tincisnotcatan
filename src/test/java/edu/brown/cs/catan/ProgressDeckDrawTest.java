@@ -3,6 +3,10 @@ package edu.brown.cs.catan;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
+import java.util.EnumSet;
+import java.util.HashSet;
+import java.util.Set;
+
 import com.google.gson.JsonObject;
 
 import org.junit.Test;
@@ -18,9 +22,13 @@ public class ProgressDeckDrawTest {
   @Test
   public void citiesAndKnightsGameDrawsFromTrackDecks() {
     Referee ref = citiesAndKnightsReferee();
-    // The Science deck holds only Printer so far; it draws once then empties.
-    assertEquals(ProgressCardType.PRINTER,
-        ref.drawProgressCard(CityImprovement.SCIENCE));
+    // The Science deck holds Printer, Irrigation, and Engineer.
+    Set<ProgressCardType> drawnScience = new HashSet<>();
+    for (int i = 0; i < 3; i++) {
+      drawnScience.add(ref.drawProgressCard(CityImprovement.SCIENCE));
+    }
+    assertEquals(EnumSet.of(ProgressCardType.PRINTER,
+        ProgressCardType.IRRIGATION, ProgressCardType.ENGINEER), drawnScience);
     assertNull(ref.drawProgressCard(CityImprovement.SCIENCE));
     // Politics deck holds Constitution.
     assertEquals(ProgressCardType.CONSTITUTION,
