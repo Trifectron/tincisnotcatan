@@ -2,6 +2,7 @@ package edu.brown.cs.catan;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -11,10 +12,14 @@ import java.util.Set;
 
 import org.junit.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 
+import edu.brown.cs.actions.RollDice;
 import edu.brown.cs.board.City;
 import edu.brown.cs.board.Intersection;
+import edu.brown.cs.board.IntersectionCoordinate;
+import edu.brown.cs.board.Path;
 import edu.brown.cs.board.Tile;
 import edu.brown.cs.board.TileType;
 
@@ -37,25 +42,25 @@ public class ProgressCardTest {
   @Test
   public void deckHoldsOnlyItsTrackAndDrainsToEmpty() {
     ProgressCardDeck science = new ProgressCardDeck(CityImprovement.SCIENCE);
-    assertEquals(4, science.size());
+    assertEquals(5, science.size());
     Set<ProgressCardType> drawn = new HashSet<>();
     while (!science.isEmpty()) {
       drawn.add(science.draw());
     }
     assertEquals(EnumSet.of(ProgressCardType.PRINTER,
         ProgressCardType.IRRIGATION, ProgressCardType.ENGINEER,
-        ProgressCardType.INVENTOR), drawn);
+        ProgressCardType.INVENTOR, ProgressCardType.ALCHEMIST), drawn);
     assertNull(science.draw());
 
     ProgressCardDeck politics = new ProgressCardDeck(CityImprovement.POLITICS);
-    assertEquals(4, politics.size());
+    assertEquals(5, politics.size());
     Set<ProgressCardType> drawnPolitics = new HashSet<>();
     while (!politics.isEmpty()) {
       drawnPolitics.add(politics.draw());
     }
     assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
         ProgressCardType.INTRIGUE, ProgressCardType.WEDDING,
-        ProgressCardType.BISHOP), drawnPolitics);
+        ProgressCardType.BISHOP, ProgressCardType.DIPLOMAT), drawnPolitics);
 
     ProgressCardDeck trade = new ProgressCardDeck(CityImprovement.TRADE);
     assertEquals(5, trade.size());
@@ -480,5 +485,105 @@ public class ProgressCardTest {
     // actually far off the board.
     String msg = ProgressCardType.MERCHANT.play(ref, pa, "0,100,0");
     assertTrue(msg.contains("isn't on the board"));
+  }
+
+  @Test
+  public void alchemistForcesTheDiceRollTotal() {
+    MasterReferee ref = cnkReferee();
+    ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player current = ref.currentPlayer();
+    ref.addFollowUp(ImmutableList.of(new RollDice(current.getID())));
+
+    String msg = ProgressCardType.ALCHEMIST.play(ref, current, "9");
+
+    assertNull(ref.getNextFollowUp(current.getID()));
+    assertTrue(msg.contains("9"));
+  }
+
+  @Test
+  public void alchemistRejectsAnOutOfRangeRoll() {
+    MasterReferee ref = cnkReferee();
+    ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player current = ref.currentPlayer();
+    ref.addFollowUp(ImmutableList.of(new RollDice(current.getID())));
+
+    String msg = ProgressCardType.ALCHEMIST.play(ref, current, "13");
+
+    assertTrue(msg.contains("2-12"));
+    assertNotNull(ref.getNextFollowUp(current.getID()));
+  }
+
+  @Test
+  public void alchemistNoOpWithoutAPendingRoll() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    Player pa = ref.getPlayerByID(p0);
+
+    String msg = ProgressCardType.ALCHEMIST.play(ref, pa, "9");
+    assertTrue(msg.contains("isn't time to roll"));
+  }
+
+  private static String intersectionTarget(IntersectionCoordinate coord) {
+    return String.format("%d,%d,%d|%d,%d,%d|%d,%d,%d",
+        coord.getCoord1().getX(), coord.getCoord1().getY(),
+        coord.getCoord1().getZ(), coord.getCoord2().getX(),
+        coord.getCoord2().getY(), coord.getCoord2().getZ(),
+        coord.getCoord3().getX(), coord.getCoord3().getY(),
+        coord.getCoord3().getZ());
+  }
+
+  private static String pathTarget(Path path) {
+    return intersectionTarget(path.getStart().getPosition()) + ";"
+        + intersectionTarget(path.getEnd().getPosition());
+  }
+
+  @Test
+  public void diplomatRemovesAnOpenRoadAndReturnsThePiece() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+    Path path = ref.getBoard().getPaths().values().iterator().next();
+    path.getStart().placeSettlement(pb);
+    path.placeRoad(pb);
+    int pbRoadsBefore = pb.numRoads();
+
+    String msg = ProgressCardType.DIPLOMAT.play(ref, pa, pathTarget(path));
+
+    assertNull(path.getRoad());
+    assertEquals(pbRoadsBefore + 1, pb.numRoads());
+    assertTrue(msg.contains("removed"));
+  }
+
+  @Test
+  public void diplomatRejectsARoadSealedBetweenTwoBuildings() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+    Path path = ref.getBoard().getPaths().values().iterator().next();
+    path.getStart().placeSettlement(pb);
+    path.getEnd().placeSettlement(pb);
+    path.placeRoad(pb);
+
+    String msg = ProgressCardType.DIPLOMAT.play(ref, pa, pathTarget(path));
+
+    assertNotNull(path.getRoad());
+    assertTrue(msg.contains("sealed"));
+  }
+
+  @Test
+  public void diplomatNoOpWithARoadlessPath() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    Player pa = ref.getPlayerByID(p0);
+    Path path = ref.getBoard().getPaths().values().iterator().next();
+
+    String msg = ProgressCardType.DIPLOMAT.play(ref, pa, pathTarget(path));
+    assertTrue(msg.contains("no road"));
   }
 }

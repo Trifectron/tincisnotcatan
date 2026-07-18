@@ -22,23 +22,26 @@ public class ProgressDeckDrawTest {
   @Test
   public void citiesAndKnightsGameDrawsFromTrackDecks() {
     Referee ref = citiesAndKnightsReferee();
-    // The Science deck holds Printer, Irrigation, Engineer, and Inventor.
+    // The Science deck holds Printer, Irrigation, Engineer, Inventor, and
+    // Alchemist.
     Set<ProgressCardType> drawnScience = new HashSet<>();
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       drawnScience.add(ref.drawProgressCard(CityImprovement.SCIENCE));
     }
     assertEquals(EnumSet.of(ProgressCardType.PRINTER,
         ProgressCardType.IRRIGATION, ProgressCardType.ENGINEER,
-        ProgressCardType.INVENTOR), drawnScience);
+        ProgressCardType.INVENTOR, ProgressCardType.ALCHEMIST),
+        drawnScience);
     assertNull(ref.drawProgressCard(CityImprovement.SCIENCE));
-    // The Politics deck holds Constitution, Intrigue, Wedding, and Bishop.
+    // The Politics deck holds Constitution, Intrigue, Wedding, Bishop, and
+    // Diplomat.
     Set<ProgressCardType> drawnPolitics = new HashSet<>();
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       drawnPolitics.add(ref.drawProgressCard(CityImprovement.POLITICS));
     }
     assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
         ProgressCardType.INTRIGUE, ProgressCardType.WEDDING,
-        ProgressCardType.BISHOP), drawnPolitics);
+        ProgressCardType.BISHOP, ProgressCardType.DIPLOMAT), drawnPolitics);
     assertNull(ref.drawProgressCard(CityImprovement.POLITICS));
     // Trade deck holds Master Merchant, Resource Monopoly, Trade Monopoly,
     // Merchant Fleet, and Merchant.
