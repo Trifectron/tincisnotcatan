@@ -15,6 +15,7 @@ import edu.brown.cs.catan.Resource;
  */
 public class City implements Building {
   private Player _player;
+  private boolean _hasWall;
 
   /**
    * Constructor for the class.
@@ -24,6 +25,21 @@ public class City implements Building {
    */
   public City(Player player) {
     _player = player;
+    _hasWall = false;
+  }
+
+  /**
+   * @return Whether this city has a city wall (Cities &amp; Knights).
+   */
+  public boolean hasWall() {
+    return _hasWall;
+  }
+
+  /**
+   * Builds a city wall on this city.
+   */
+  public void buildWall() {
+    _hasWall = true;
   }
 
   @Override

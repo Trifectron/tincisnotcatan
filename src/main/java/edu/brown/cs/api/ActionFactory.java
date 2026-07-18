@@ -7,6 +7,7 @@ import com.google.gson.JsonSyntaxException;
 import edu.brown.cs.actions.Action;
 import edu.brown.cs.actions.ActivateKnight;
 import edu.brown.cs.actions.BuildCity;
+import edu.brown.cs.actions.BuildCityWall;
 import edu.brown.cs.actions.BuildKnight;
 import edu.brown.cs.actions.BuildRoad;
 import edu.brown.cs.actions.BuildSettlement;
@@ -148,6 +149,10 @@ public class ActionFactory {
               toIntersectionCoordinate(actionJSON.get("from")
                   .getAsJsonObject()),
               toIntersectionCoordinate(actionJSON.get("to").getAsJsonObject()));
+        case BuildCityWall.ID:
+          return new BuildCityWall(_referee, playerID,
+              toIntersectionCoordinate(actionJSON.get("coordinate")
+                  .getAsJsonObject()));
         default:
           String err = String.format("The action %s does not exist.", action);
           throw new IllegalArgumentException(err);

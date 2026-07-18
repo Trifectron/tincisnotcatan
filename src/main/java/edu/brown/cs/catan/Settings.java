@@ -52,8 +52,19 @@ public abstract class Settings {
       ImmutableMap.of(Resource.WHEAT, 1.0);
   public static final int MAX_KNIGHT_TIER = 3;
 
+  // Cities & Knights city wall: costs 2 brick and lets the owner hold this many
+  // extra cards before discarding on a 7.
+  public final static Map<Resource, Double> CITY_WALL_COST = ImmutableMap.of(
+      Resource.BRICK, 2.0);
+  public static final double CITY_WALL_CARD_BONUS = 2.0;
+
   // Cities & Knights: steps the barbarian fleet takes to reach the island.
   public static final int BARBARIAN_TRACK_LENGTH = 7;
+
+  // Cities & Knights: an improvement track at this level or higher can hold a
+  // metropolis, which is worth this many victory points.
+  public static final int METROPOLIS_LEVEL = 4;
+  public static final int METROPOLIS_POINT_VAL = 2;
 
   // Bank rates for trading in basic game:
   public final static double BANK_RATE = 4.0;

@@ -52,6 +52,23 @@ public interface Referee {
    */
   String resolveBarbarianAttack();
 
+  /**
+   * Re-evaluates ownership of the metropolis for the given improvement track
+   * (Cities &amp; Knights) and transfers it, with its victory points, if a player
+   * now out-levels the current holder. No-op in base games.
+   *
+   * @param track
+   *          The improvement track to re-evaluate.
+   */
+  void awardMetropolis(CityImprovement track);
+
+  /**
+   * @param track
+   *          An improvement track.
+   * @return The player id holding that track's metropolis, or -1 if none.
+   */
+  int getMetropolisOwner(CityImprovement track);
+
   GameSettings getGameSettings();
 
   Referee getReadOnlyReferee();

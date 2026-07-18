@@ -14,6 +14,7 @@ import edu.brown.cs.actions.FollowUpAction;
 import edu.brown.cs.board.Board;
 import edu.brown.cs.board.BoardTile;
 import edu.brown.cs.board.Building;
+import edu.brown.cs.board.City;
 import edu.brown.cs.board.HexCoordinate;
 import edu.brown.cs.board.Intersection;
 import edu.brown.cs.board.IntersectionCoordinate;
@@ -76,6 +77,7 @@ public class CatanConverter {
     private GameSettings settings;
     private GameStatsRaw stats;
     private Integer barbarianPosition;
+    private Map<CityImprovement, Integer> metropolisOwners;
 
     public GameState(Referee ref, int playerID) {
       this.playerID = playerID;
@@ -94,6 +96,12 @@ public class CatanConverter {
       this.stats = new GameStatsRaw(ref);
       this.barbarianPosition = ref.getBarbarianTrack() != null ? ref
           .getBarbarianTrack().getPosition() : null;
+      if (ref.getGameSettings().isCitiesAndKnights) {
+        this.metropolisOwners = new HashMap<>();
+        for (CityImprovement track : CityImprovement.values()) {
+          metropolisOwners.put(track, ref.getMetropolisOwner(track));
+        }
+      }
       for (Player p : ref.getPlayers()) {
         players.add(new PublicPlayerRaw(p, ref.getReadOnlyReferee()));
       }
@@ -194,12 +202,14 @@ public class CatanConverter {
 
     private int player;
     private final String type;
+    private final boolean hasWall;
 
     BuildingRaw(Building building) {
       if (building.getPlayer() != null) {
         player = building.getPlayer().getID();
       }
       type = building.getClass().getSimpleName().toLowerCase();
+      hasWall = building instanceof City && ((City) building).hasWall();
     }
 
     @Override

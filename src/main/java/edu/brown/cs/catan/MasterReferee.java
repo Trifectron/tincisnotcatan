@@ -42,6 +42,8 @@ public class MasterReferee implements Referee {
   private final Map<CityImprovement, ProgressCardDeck> _progressDecks;
   // Cities & Knights barbarian fleet track (null in base games).
   private final BarbarianTrack _barbarianTrack;
+  // Cities & Knights metropolis owner per improvement track (player id or -1).
+  private final Map<CityImprovement, Integer> _metropolisOwners;
   private final GameSettings _gameSettings;
   private Player _largestArmy = null;
   private Player _longestRoad = null;
@@ -63,6 +65,8 @@ public class MasterReferee implements Referee {
     _progressDecks = initializeProgressDecks(_gameSettings.isCitiesAndKnights);
     _barbarianTrack = _gameSettings.isCitiesAndKnights ? new BarbarianTrack()
         : null;
+    _metropolisOwners = initializeMetropolisOwners(
+        _gameSettings.isCitiesAndKnights);
     _turn = new Turn(1, Collections.emptyMap());
     _gameStatus = GameStatus.WAITING;
     _setup = new Setup(getSetupOrder());
@@ -86,6 +90,8 @@ public class MasterReferee implements Referee {
     _progressDecks = initializeProgressDecks(_gameSettings.isCitiesAndKnights);
     _barbarianTrack = _gameSettings.isCitiesAndKnights ? new BarbarianTrack()
         : null;
+    _metropolisOwners = initializeMetropolisOwners(
+        _gameSettings.isCitiesAndKnights);
     _turn = new Turn(1, Collections.emptyMap());
     _gameStatus = GameStatus.WAITING;
     _setup = new Setup(getSetupOrder());
@@ -163,9 +169,60 @@ public class MasterReferee implements Referee {
     return deck == null ? null : deck.draw();
   }
 
+  private Map<CityImprovement, Integer> initializeMetropolisOwners(
+      boolean citiesAndKnights) {
+    Map<CityImprovement, Integer> owners = new HashMap<>();
+    if (citiesAndKnights) {
+      for (CityImprovement track : CityImprovement.values()) {
+        owners.put(track, -1);
+      }
+    }
+    return owners;
+  }
+
   @Override
   public BarbarianTrack getBarbarianTrack() {
     return _barbarianTrack;
+  }
+
+  @Override
+  public int getMetropolisOwner(CityImprovement track) {
+    return _metropolisOwners.getOrDefault(track, -1);
+  }
+
+  @Override
+  public void awardMetropolis(CityImprovement track) {
+    if (!_gameSettings.isCitiesAndKnights) {
+      return;
+    }
+    int holder = getMetropolisOwner(track);
+    int holderLevel = holder >= 0 ? getPlayerByID(holder)
+        .getImprovementLevel(track) : 0;
+    // Find the lone highest-level player on this track.
+    int maxLevel = 0;
+    int maxPlayer = -1;
+    boolean tie = false;
+    for (Player p : _players.values()) {
+      int level = p.getImprovementLevel(track);
+      if (level > maxLevel) {
+        maxLevel = level;
+        maxPlayer = p.getID();
+        tie = false;
+      } else if (level == maxLevel && level > 0) {
+        tie = true;
+      }
+    }
+    // Award only to a lone leader at or above the metropolis level who strictly
+    // out-levels the current holder.
+    if (tie || maxLevel < Settings.METROPOLIS_LEVEL || maxLevel <= holderLevel
+        || maxPlayer == holder) {
+      return;
+    }
+    if (holder >= 0) {
+      getPlayerByID(holder).addVictoryPoints(-Settings.METROPOLIS_POINT_VAL);
+    }
+    _metropolisOwners.put(track, maxPlayer);
+    getPlayerByID(maxPlayer).addVictoryPoints(Settings.METROPOLIS_POINT_VAL);
   }
 
   @Override
@@ -502,6 +559,17 @@ public class MasterReferee implements Referee {
     public String resolveBarbarianAttack() {
       throw new UnsupportedOperationException(
           "A ReadOnlyReferee cannot resolve a barbarian attack.");
+    }
+
+    @Override
+    public int getMetropolisOwner(CityImprovement track) {
+      return _referee.getMetropolisOwner(track);
+    }
+
+    @Override
+    public void awardMetropolis(CityImprovement track) {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyReferee cannot award a metropolis.");
     }
 
     @Override

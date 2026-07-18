@@ -10,6 +10,8 @@ import java.util.Random;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 
+import edu.brown.cs.board.City;
+import edu.brown.cs.board.Intersection;
 import edu.brown.cs.board.Tile;
 import edu.brown.cs.catan.CityImprovement;
 import edu.brown.cs.catan.Commodity;
@@ -172,7 +174,7 @@ public class RollDice implements FollowUpAction {
       Map<Integer, JsonObject> jsonToSend = new HashMap<>();
       String message = "7 was rolled.";
       for (Player p : _ref.getPlayers()) {
-        if (p.getNumResourceCards() > Settings.DROP_CARDS_THRESH) {
+        if (p.getNumResourceCards() > discardThreshold(p)) {
           double numToDrop = p.getNumResourceCards() / 2.0;
           if (!_ref.getGameSettings().isDecimal) {
             numToDrop = Math.floor(numToDrop);
@@ -272,6 +274,28 @@ public class RollDice implements FollowUpAction {
    * @param redDie
    *          The value of the red production die (1-6).
    */
+  // The card count a player may hold before discarding on a 7. Cities & Knights
+  // city walls raise it by CITY_WALL_CARD_BONUS each.
+  private double discardThreshold(Player player) {
+    double threshold = Settings.DROP_CARDS_THRESH;
+    if (_ref.getGameSettings().isCitiesAndKnights) {
+      threshold += Settings.CITY_WALL_CARD_BONUS * countWalls(player.getID());
+    }
+    return threshold;
+  }
+
+  private int countWalls(int playerID) {
+    int walls = 0;
+    for (Intersection i : _ref.getBoard().getIntersections().values()) {
+      if (i.getBuilding() instanceof City
+          && i.getBuilding().getPlayer().getID() == playerID
+          && ((City) i.getBuilding()).hasWall()) {
+        walls++;
+      }
+    }
+    return walls;
+  }
+
   private void handleEventDie(Random r, int redDie) {
     int eventDie = r.nextInt(6) + 1;
     CityImprovement track;

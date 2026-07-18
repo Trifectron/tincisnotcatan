@@ -65,6 +65,7 @@ public class ImproveCity implements Action {
 
     // The Action:
     _player.improveCity(_improvement);
+    _ref.awardMetropolis(_improvement);
     int newLevel = _player.getImprovementLevel(_improvement);
 
     // Formatting the response:
