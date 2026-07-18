@@ -30,9 +30,14 @@ public class ProgressDeckDrawTest {
     assertEquals(EnumSet.of(ProgressCardType.PRINTER,
         ProgressCardType.IRRIGATION, ProgressCardType.ENGINEER), drawnScience);
     assertNull(ref.drawProgressCard(CityImprovement.SCIENCE));
-    // Politics deck holds Constitution.
-    assertEquals(ProgressCardType.CONSTITUTION,
-        ref.drawProgressCard(CityImprovement.POLITICS));
+    // The Politics deck holds Constitution, Intrigue, and Wedding.
+    Set<ProgressCardType> drawnPolitics = new HashSet<>();
+    for (int i = 0; i < 3; i++) {
+      drawnPolitics.add(ref.drawProgressCard(CityImprovement.POLITICS));
+    }
+    assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
+        ProgressCardType.INTRIGUE, ProgressCardType.WEDDING), drawnPolitics);
+    assertNull(ref.drawProgressCard(CityImprovement.POLITICS));
     // Trade has no wired cards yet: an empty deck, not an error.
     assertNull(ref.drawProgressCard(CityImprovement.TRADE));
   }

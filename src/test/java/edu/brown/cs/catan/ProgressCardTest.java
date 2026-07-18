@@ -46,6 +46,15 @@ public class ProgressCardTest {
         ProgressCardType.IRRIGATION, ProgressCardType.ENGINEER), drawn);
     assertNull(science.draw());
 
+    ProgressCardDeck politics = new ProgressCardDeck(CityImprovement.POLITICS);
+    assertEquals(3, politics.size());
+    Set<ProgressCardType> drawnPolitics = new HashSet<>();
+    while (!politics.isEmpty()) {
+      drawnPolitics.add(politics.draw());
+    }
+    assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
+        ProgressCardType.INTRIGUE, ProgressCardType.WEDDING), drawnPolitics);
+
     // A track with no wired cards yields an empty deck, not an error.
     assertTrue(new ProgressCardDeck(CityImprovement.TRADE).isEmpty());
   }
@@ -153,5 +162,64 @@ public class ProgressCardTest {
 
     String msg = ProgressCardType.ENGINEER.play(ref, p);
     assertTrue(msg.contains("no unwalled city"));
+  }
+
+  @Test
+  public void intrigueDeactivatesStrongestOpposingKnight() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+
+    Intersection knightInt = ref.getBoard().getIntersections().values()
+        .iterator().next();
+    knightInt.placeKnight(pb);
+    knightInt.getKnight().activate();
+
+    String msg = ProgressCardType.INTRIGUE.play(ref, pa);
+    assertFalse(knightInt.getKnight().isActive());
+    assertTrue(msg.contains("deactivated"));
+  }
+
+  @Test
+  public void intrigueNoOpWithoutActiveOpposingKnight() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    Player pa = ref.getPlayerByID(p0);
+
+    String msg = ProgressCardType.INTRIGUE.play(ref, pa);
+    assertTrue(msg.contains("no opposing knight"));
+  }
+
+  @Test
+  public void weddingTakesResourcesFromRicherPlayers() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+
+    pb.addVictoryPoints(1);
+    pb.addResource(Resource.WHEAT, 5, ref.getBank());
+
+    double paBefore = pa.getResources().get(Resource.WHEAT);
+    double pbBefore = pb.getResources().get(Resource.WHEAT);
+    String msg = ProgressCardType.WEDDING.play(ref, pa);
+
+    assertEquals(paBefore + 2, pa.getResources().get(Resource.WHEAT), 0.0001);
+    assertEquals(pbBefore - 2, pb.getResources().get(Resource.WHEAT), 0.0001);
+    assertTrue(msg.contains("received 2 resource"));
+  }
+
+  @Test
+  public void weddingNoOpWithoutRicherPlayer() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+
+    String msg = ProgressCardType.WEDDING.play(ref, pa);
+    assertTrue(msg.contains("no player has more victory points"));
   }
 }

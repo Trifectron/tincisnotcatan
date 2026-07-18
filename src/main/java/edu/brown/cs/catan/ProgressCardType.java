@@ -1,7 +1,10 @@
 package edu.brown.cs.catan;
 
+import java.util.Map;
+
 import edu.brown.cs.board.City;
 import edu.brown.cs.board.Intersection;
+import edu.brown.cs.board.Knight;
 import edu.brown.cs.board.Tile;
 import edu.brown.cs.board.TileType;
 
@@ -62,6 +65,55 @@ public enum ProgressCardType {
   CONSTITUTION(CityImprovement.POLITICS, "Constitution", (ref, player) -> {
     player.addVictoryPoints(1);
     return "You played Constitution and gained a victory point.";
+  }),
+
+  INTRIGUE(CityImprovement.POLITICS, "Intrigue", (ref, player) -> {
+    Knight target = null;
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      Knight k = i.getKnight();
+      if (k != null && k.isActive() && !k.getPlayer().equals(player)
+          && (target == null || k.getTier() > target.getTier())) {
+        target = k;
+      }
+    }
+    if (target == null) {
+      return "You played Intrigue but no opposing knight is active.";
+    }
+    target.deactivate();
+    return String.format(
+        "You played Intrigue and deactivated %s's tier-%d knight.",
+        target.getPlayer().getName(), target.getTier());
+  }),
+
+  WEDDING(CityImprovement.POLITICS, "Wedding", (ref, player) -> {
+    int received = 0;
+    for (Player other : ref.getPlayers()) {
+      if (other.equals(player)
+          || other.numVictoryPoints() <= player.numVictoryPoints()) {
+        continue;
+      }
+      for (int i = 0; i < 2; i++) {
+        Resource biggest = null;
+        double max = 0;
+        for (Map.Entry<Resource, Double> entry : other.getResources()
+            .entrySet()) {
+          if (entry.getValue() > max) {
+            max = entry.getValue();
+            biggest = entry.getKey();
+          }
+        }
+        if (biggest == null) {
+          break;
+        }
+        other.removeResource(biggest, 1, ref.getBank());
+        player.addResource(biggest, 1, ref.getBank());
+        received++;
+      }
+    }
+    return received > 0
+        ? String.format("You played Wedding and received %d resource card(s).",
+            received)
+        : "You played Wedding but no player has more victory points than you.";
   });
 
   private final CityImprovement _deck;
