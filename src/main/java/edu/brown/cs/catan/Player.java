@@ -57,6 +57,12 @@ public interface Player {
   void useRoad();
 
   /**
+   * Returns a road piece to the player's supply (Cities &amp; Knights Diplomat
+   * progress card, whose removed road goes back to its owner).
+   */
+  void returnRoad();
+
+  /**
    * Uses a City piece.
    */
   void useCity();

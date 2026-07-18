@@ -325,6 +325,11 @@ public class HumanPlayer implements Player {
   }
 
   @Override
+  public void returnRoad() {
+    numRoads++;
+  }
+
+  @Override
   public void useCity() {
     assert numCities > 0;
     assert numSettlements != Settings.INITIAL_SETTLEMENTS;
@@ -498,6 +503,12 @@ public class HumanPlayer implements Player {
 
     @Override
     public void useRoad() {
+      throw new UnsupportedOperationException(
+          "Player is immutable and cannot build.");
+    }
+
+    @Override
+    public void returnRoad() {
       throw new UnsupportedOperationException(
           "Player is immutable and cannot build.");
     }
