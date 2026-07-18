@@ -12,6 +12,7 @@ import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
 
+import edu.brown.cs.catan.Commodity;
 import edu.brown.cs.catan.Resource;
 
 /**
@@ -271,11 +272,25 @@ public class Tile implements BoardTile {
    *         and how many of them.
    */
   public Map<Integer, Map<Resource, Integer>> notifyIntersections() {
+    return notifyIntersections(false);
+  }
+
+  /**
+   * Cities &amp; Knights variant of {@link #notifyIntersections()}: cities on
+   * ore/wool/lumber hexes yield one fewer resource (the balance is produced as
+   * a commodity by {@link #notifyCommodities()}).
+   *
+   * @param citiesAndKnights
+   *          Whether this is a Cities &amp; Knights game.
+   * @return A map of player id to the resources collected.
+   */
+  public Map<Integer, Map<Resource, Integer>> notifyIntersections(
+      boolean citiesAndKnights) {
     Map<Integer, Map<Resource, Integer>> playerResourceCount = new HashMap<Integer, Map<Resource, Integer>>();
     assert (_type.getType() != null);
     for (Intersection i : _intersections) {
       Map<Integer, Map<Resource, Integer>> fromInter = i.notifyBuilding(_type
-          .getType());
+          .getType(), citiesAndKnights);
       for (int playerID : fromInter.keySet()) {
         if (!playerResourceCount.containsKey(playerID)) {
           playerResourceCount.put(playerID, new HashMap<Resource, Integer>());
@@ -294,6 +309,34 @@ public class Tile implements BoardTile {
     }
 
     return playerResourceCount;
+  }
+
+  /**
+   * Collects the Cities &amp; Knights commodities produced by the cities on this
+   * tile when its number is rolled.
+   *
+   * @return A map of player id to the commodities they collected (empty if the
+   *         tile produces no commodities).
+   */
+  public Map<Integer, Map<Commodity, Integer>> notifyCommodities() {
+    Map<Integer, Map<Commodity, Integer>> playerCommodityCount = new HashMap<Integer, Map<Commodity, Integer>>();
+    if (_type.getType() == null) {
+      return playerCommodityCount;
+    }
+    for (Intersection i : _intersections) {
+      Map<Integer, Map<Commodity, Integer>> fromInter = i
+          .notifyBuildingCommodity(_type.getType());
+      for (int playerID : fromInter.keySet()) {
+        Map<Commodity, Integer> commodityCount = fromInter.get(playerID);
+        Map<Commodity, Integer> playerCount = playerCommodityCount
+            .computeIfAbsent(playerID, k -> new HashMap<Commodity, Integer>());
+        for (Commodity commodity : commodityCount.keySet()) {
+          playerCount.merge(commodity, commodityCount.get(commodity),
+              Integer::sum);
+        }
+      }
+    }
+    return playerCommodityCount;
   }
 
   /**

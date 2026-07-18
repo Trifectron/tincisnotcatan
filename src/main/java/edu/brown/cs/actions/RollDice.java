@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 
 import edu.brown.cs.board.Tile;
+import edu.brown.cs.catan.Commodity;
 import edu.brown.cs.catan.Player;
 import edu.brown.cs.catan.Referee;
 import edu.brown.cs.catan.Resource;
@@ -69,9 +70,25 @@ public class RollDice implements FollowUpAction {
       for (Tile t : tiles) {
         // If the tile matches the roll and does not have the robber
         if (t.getRollNumber() == diceRoll && !t.hasRobber()) {
+          boolean citiesAndKnights = _ref.getGameSettings().isCitiesAndKnights;
+          // Cities & Knights: cities also produce commodities. Credit them
+          // directly; there is no commodity bank scarcity yet.
+          // ponytail: no commodity bank, add when token limits matter.
+          if (citiesAndKnights) {
+            Map<Integer, Map<Commodity, Integer>> fromTileCommodities = t
+                .notifyCommodities();
+            for (int playerID : fromTileCommodities.keySet()) {
+              Map<Commodity, Integer> commodityCount = fromTileCommodities
+                  .get(playerID);
+              for (Commodity commodity : commodityCount.keySet()) {
+                _ref.getPlayerByID(playerID).addCommodity(commodity,
+                    commodityCount.get(commodity));
+              }
+            }
+          }
           // Find out who should collect what from the intersections
           Map<Integer, Map<Resource, Integer>> fromTile = t
-              .notifyIntersections();
+              .notifyIntersections(citiesAndKnights);
           // Iterate through this and consolidate collections for each person
           for (int playerID : fromTile.keySet()) {
             if (!playerResourceCount.containsKey(playerID)) {

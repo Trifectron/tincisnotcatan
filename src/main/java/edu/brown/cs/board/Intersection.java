@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import edu.brown.cs.catan.Commodity;
 import edu.brown.cs.catan.Player;
 import edu.brown.cs.catan.Referee;
 import edu.brown.cs.catan.Referee.GameStatus;
@@ -63,9 +64,40 @@ public class Intersection {
    *         and how many of them.
    */
   public Map<Integer, Map<Resource, Integer>> notifyBuilding(Resource res) {
+    return notifyBuilding(res, false);
+  }
+
+  /**
+   * Cities &amp; Knights variant of {@link #notifyBuilding(Resource)}.
+   *
+   * @param res
+   *          Type of resource to collect.
+   * @param citiesAndKnights
+   *          Whether this is a Cities &amp; Knights game.
+   * @return A map of player id to the resources collected.
+   */
+  public Map<Integer, Map<Resource, Integer>> notifyBuilding(Resource res,
+      boolean citiesAndKnights) {
     Map<Integer, Map<Resource, Integer>> toRet = new HashMap<Integer, Map<Resource, Integer>>();
     if (_building != null) {
-      toRet = _building.collectResource(res);
+      toRet = _building.collectResource(res, citiesAndKnights);
+    }
+    return toRet;
+  }
+
+  /**
+   * Tells the building to collect any Cities &amp; Knights commodities it
+   * produces from the given resource hex.
+   *
+   * @param res
+   *          Type of resource the hex produces.
+   * @return A map of player id to the commodities collected (empty if none).
+   */
+  public Map<Integer, Map<Commodity, Integer>> notifyBuildingCommodity(
+      Resource res) {
+    Map<Integer, Map<Commodity, Integer>> toRet = new HashMap<Integer, Map<Commodity, Integer>>();
+    if (_building != null) {
+      toRet = _building.collectCommodity(res);
     }
     return toRet;
   }
