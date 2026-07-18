@@ -1,8 +1,13 @@
 package edu.brown.cs.catan;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Map;
 
+import edu.brown.cs.actions.FollowUpAction;
+import edu.brown.cs.actions.MoveRobber;
 import edu.brown.cs.board.City;
+import edu.brown.cs.board.HexCoordinate;
 import edu.brown.cs.board.Intersection;
 import edu.brown.cs.board.Knight;
 import edu.brown.cs.board.Tile;
@@ -13,11 +18,12 @@ import edu.brown.cs.board.TileType;
  * improvement deck (Trade, Politics, or Science) and carries its own effect.
  *
  * Cards that need a player-chosen target take it as a string in
- * {@link #play(Referee, Player, String)} (e.g. Resource Monopoly's resource
- * name); cards that don't need one ignore the parameter. Remaining cards
- * (Inventor's tile swap, Alchemist's re-rolled dice, Road Building's
- * placement, Diplomat's road pick, Bishop's robber target, Merchant/Merchant
- * Fleet's trade hex, Trade Monopoly) are not wired yet.
+ * {@link #play(Referee, Player, String)}: a resource name (Resource
+ * Monopoly, Trade Monopoly, Merchant Fleet) or two semicolon-separated tile
+ * coordinates (Inventor); cards that don't need a target ignore the
+ * parameter. Alchemist (re-rolled dice) and Diplomat/Merchant (which target a
+ * road or tile the player doesn't yet own/occupy, needing UI beyond a text
+ * field) are not wired yet.
  *
  */
 public enum ProgressCardType {
@@ -59,6 +65,29 @@ public enum ProgressCardType {
       }
     }
     return "You played Engineer but have no unwalled city to fortify.";
+  }),
+
+  // Inventor's target is two tile coordinates, "x1,y1,z1;x2,y2,z2".
+  INVENTOR(CityImprovement.SCIENCE, "Inventor", (ref, player, target) -> {
+    String[] coords = target.split(";");
+    HexCoordinate first = parseHexCoordinate(coords[0]);
+    HexCoordinate second = parseHexCoordinate(coords[1]);
+    Tile firstTile = null;
+    Tile secondTile = null;
+    for (Tile tile : ref.getBoard().getTiles()) {
+      if (tile.getCoordinate().equals(first)) {
+        firstTile = tile;
+      } else if (tile.getCoordinate().equals(second)) {
+        secondTile = tile;
+      }
+    }
+    if (firstTile == null || secondTile == null) {
+      return "You played Inventor but named a tile that isn't on the board.";
+    }
+    int firstNum = firstTile.getRollNumber();
+    firstTile.setRollNumber(secondTile.getRollNumber());
+    secondTile.setRollNumber(firstNum);
+    return "You played Inventor and swapped two tiles' numbers.";
   }),
 
   // Politics deck.
@@ -116,6 +145,14 @@ public enum ProgressCardType {
         : "You played Wedding but no player has more victory points than you.";
   }),
 
+  BISHOP(CityImprovement.POLITICS, "Bishop", (ref, player, target) -> {
+    Collection<FollowUpAction> followUp = new ArrayList<>();
+    followUp.add(new MoveRobber(player.getID()));
+    ref.addFollowUp(followUp);
+    return "You played Bishop. Move the robber; whoever ends up on that "
+        + "hex must give you a card.";
+  }),
+
   // Trade deck.
   MASTER_MERCHANT(CityImprovement.TRADE, "Master Merchant", (ref, player, target) -> {
     Player richest = null;
@@ -164,6 +201,31 @@ public enum ProgressCardType {
   RESOURCE_MONOPOLY(CityImprovement.TRADE, "Resource Monopoly", (ref, player,
       target) -> {
     Resource res = Resource.stringToResource(target);
+    double received = 0;
+    for (Player other : ref.getPlayers()) {
+      if (other.equals(player)) {
+        continue;
+      }
+      double has = other.getResources().get(res);
+      if (has <= 0) {
+        continue;
+      }
+      other.removeResource(res, has, ref.getBank());
+      player.addResource(res, has, ref.getBank());
+      received += has;
+    }
+    return received > 0
+        ? String.format(
+            "You played Resource Monopoly and took all %s %s card(s).",
+            (int) received, res.toString())
+        : String.format(
+            "You played Resource Monopoly but no other player has any %s.",
+            res.toString());
+  }),
+
+  TRADE_MONOPOLY(CityImprovement.TRADE, "Trade Monopoly", (ref, player,
+      target) -> {
+    Resource res = Resource.stringToResource(target);
     int received = 0;
     for (Player other : ref.getPlayers()) {
       if (other.equals(player)) {
@@ -178,12 +240,20 @@ public enum ProgressCardType {
       received++;
     }
     return received > 0
-        ? String.format(
-            "You played Resource Monopoly and took %d %s card(s).", received,
-            res.toString())
+        ? String.format("You played Trade Monopoly and took %d %s card(s).",
+            received, res.toString())
         : String.format(
-            "You played Resource Monopoly but no other player has any %s.",
+            "You played Trade Monopoly but no other player has any %s.",
             res.toString());
+  }),
+
+  MERCHANT_FLEET(CityImprovement.TRADE, "Merchant Fleet", (ref, player,
+      target) -> {
+    Resource res = Resource.stringToResource(target);
+    ref.setMerchantFleetResource(res);
+    return String.format(
+        "You played Merchant Fleet and can trade %s 2:1 with the bank "
+            + "for the rest of your turn.", res.toString());
   });
 
   private final CityImprovement _deck;
@@ -254,5 +324,12 @@ public enum ProgressCardType {
     }
     throw new IllegalArgumentException(String.format(
         "No progress card named %s.", name));
+  }
+
+  // Parses "x,y,z" into a HexCoordinate, for Inventor's tile targets.
+  private static HexCoordinate parseHexCoordinate(String str) {
+    String[] parts = str.split(",");
+    return new HexCoordinate(Integer.parseInt(parts[0]),
+        Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
   }
 }
