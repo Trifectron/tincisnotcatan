@@ -108,4 +108,18 @@ public interface Player {
 
   boolean hasResource(Resource res, double count);
 
+  /**
+   * The player's commodity hand (Cities &amp; Knights). Base-game players hold
+   * zero of every commodity.
+   *
+   * @return An unmodifiable map of commodity to count.
+   */
+  Map<Commodity, Double> getCommodities();
+
+  void addCommodity(Commodity commodity, double count);
+
+  void removeCommodity(Commodity commodity, double count);
+
+  boolean hasCommodity(Commodity commodity, double count);
+
 }

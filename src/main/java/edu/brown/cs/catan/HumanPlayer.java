@@ -21,6 +21,8 @@ public class HumanPlayer implements Player {
   // Player's Hand:
   private final Map<Resource, Double> resources;
   private final Map<DevelopmentCard, Integer> devCards;
+  // Cities & Knights commodity hand (all zero in base games):
+  private final Map<Commodity, Double> commodities;
 
   // Remaining Buildings:
   private int numRoads;
@@ -58,6 +60,11 @@ public class HumanPlayer implements Player {
     this.devCards = new HashMap<>();
     for (DevelopmentCard card : DevelopmentCard.values()) {
       devCards.put(card, 0);
+    }
+    // Initialize commodity hand:
+    this.commodities = new HashMap<>();
+    for (Commodity commodity : Commodity.values()) {
+      commodities.put(commodity, 0.0);
     }
   }
 
@@ -199,6 +206,29 @@ public class HumanPlayer implements Player {
   @Override
   public boolean hasResource(Resource res, double count) {
     return resources.get(res) >= count;
+  }
+
+  @Override
+  public Map<Commodity, Double> getCommodities() {
+    return Collections.unmodifiableMap(commodities);
+  }
+
+  @Override
+  public void addCommodity(Commodity commodity, double count) {
+    commodities.replace(commodity,
+        CatanFormats.round(commodities.get(commodity) + count));
+  }
+
+  @Override
+  public void removeCommodity(Commodity commodity, double count) {
+    double newCount = commodities.get(commodity) - count;
+    assert newCount >= 0;
+    commodities.put(commodity, CatanFormats.round(newCount));
+  }
+
+  @Override
+  public boolean hasCommodity(Commodity commodity, double count) {
+    return commodities.get(commodity) >= count;
   }
 
   @Override
@@ -554,6 +584,28 @@ public class HumanPlayer implements Player {
     @Override
     public boolean hasResource(Resource res, double count) {
       return _player.hasResource(res, count);
+    }
+
+    @Override
+    public Map<Commodity, Double> getCommodities() {
+      return _player.getCommodities();
+    }
+
+    @Override
+    public void addCommodity(Commodity commodity, double count) {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyPlayer cannot add commodities.");
+    }
+
+    @Override
+    public void removeCommodity(Commodity commodity, double count) {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyPlayer cannot remove commodities.");
+    }
+
+    @Override
+    public boolean hasCommodity(Commodity commodity, double count) {
+      return _player.hasCommodity(commodity, count);
     }
 
     @Override
