@@ -240,54 +240,67 @@ public class ProgressCardTest {
   }
 
   @Test
-  public void medicinePaysOneWheatPerAdjacentWheatHex() {
+  public void medicineUpgradesASettlementForADiscount() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");
     ref.addPlayer("B", "#111111");
     Player p = ref.getPlayerByID(p0);
+    Intersection settlementInt = ref.getBoard().getIntersections().values()
+        .iterator().next();
+    settlementInt.placeSettlement(p);
+    p.useSettlement();
+    p.addResource(Resource.ORE, 2, ref.getBank());
+    p.addResource(Resource.WHEAT, 1, ref.getBank());
+    int citiesBefore = p.numCities();
 
-    Tile wheatTile = null;
-    for (Tile tile : ref.getBoard().getTiles()) {
-      if (tile.getType() == TileType.WHEAT) {
-        wheatTile = tile;
-        break;
-      }
-    }
-    assertTrue("Standard board should have a wheat hex", wheatTile != null);
-    Intersection settlementInt = wheatTile.getIntersections().iterator()
-        .next();
+    String msg = ProgressCardType.MEDICINE.play(ref, p,
+        intersectionTarget(settlementInt.getPosition()));
+
+    assertTrue(settlementInt.getBuilding() instanceof City);
+    assertEquals(0.0, p.getResources().get(Resource.ORE), 0.0001);
+    assertEquals(0.0, p.getResources().get(Resource.WHEAT), 0.0001);
+    assertEquals(citiesBefore - 1, p.numCities());
+    assertTrue(msg.contains("2 ore"));
+  }
+
+  @Test
+  public void medicineRejectsWithoutTheDiscountedCost() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+    Intersection settlementInt = ref.getBoard().getIntersections().values()
+        .iterator().next();
     settlementInt.placeSettlement(p);
 
-    int expectedWheat = 0;
-    for (Tile tile : ref.getBoard().getTiles()) {
-      if (tile.getType() == TileType.WHEAT
-          && tile.getIntersections().contains(settlementInt)) {
-        expectedWheat++;
-      }
-    }
+    String msg = ProgressCardType.MEDICINE.play(ref, p,
+        intersectionTarget(settlementInt.getPosition()));
 
-    double before = p.getResources().get(Resource.WHEAT);
-    String msg = ProgressCardType.MEDICINE.play(ref, p);
-    assertEquals(before + expectedWheat, p.getResources().get(Resource.WHEAT),
-        0.0001);
-    assertTrue(msg.contains("wheat"));
+    assertFalse(settlementInt.getBuilding() instanceof City);
+    assertTrue(msg.contains("can't afford"));
   }
 
   @Test
-  public void medicineNoOpWithoutAdjacentBuilding() {
+  public void medicineRejectsSomeoneElsesSettlement() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");
-    ref.addPlayer("B", "#111111");
-    Player p = ref.getPlayerByID(p0);
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+    Intersection settlementInt = ref.getBoard().getIntersections().values()
+        .iterator().next();
+    settlementInt.placeSettlement(pb);
+    pa.addResource(Resource.ORE, 2, ref.getBank());
+    pa.addResource(Resource.WHEAT, 1, ref.getBank());
 
-    double before = p.getResources().get(Resource.WHEAT);
-    String msg = ProgressCardType.MEDICINE.play(ref, p);
-    assertEquals(before, p.getResources().get(Resource.WHEAT), 0.0001);
-    assertTrue(msg.contains("no settlements"));
+    String msg = ProgressCardType.MEDICINE.play(ref, pa,
+        intersectionTarget(settlementInt.getPosition()));
+
+    assertTrue(msg.contains("isn't your settlement"));
   }
 
   @Test
-  public void miningPaysOneOrePerAdjacentOreHex() {
+  public void miningPaysTwoOrePerAdjacentOreHex() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");
     ref.addPlayer("B", "#111111");
@@ -309,7 +322,7 @@ public class ProgressCardTest {
     for (Tile tile : ref.getBoard().getTiles()) {
       if (tile.getType() == TileType.ORE
           && tile.getIntersections().contains(settlementInt)) {
-        expectedOre++;
+        expectedOre += 2;
       }
     }
 

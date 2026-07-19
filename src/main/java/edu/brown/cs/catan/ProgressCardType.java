@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 
 import edu.brown.cs.actions.FollowUpAction;
@@ -20,8 +21,6 @@ import edu.brown.cs.board.PathCoordinate;
 import edu.brown.cs.board.Tile;
 import edu.brown.cs.board.TileType;
 
-import com.google.common.collect.ImmutableList;
-
 /**
  * The catalog of Cities & Knights progress cards. Each card belongs to one
  * improvement deck (Trade, Politics, or Science) and carries its own effect.
@@ -30,9 +29,11 @@ import com.google.common.collect.ImmutableList;
  * {@link #play(Referee, Player, String)}: a resource name (Resource
  * Monopoly, Trade Monopoly, Merchant Fleet), an improvement track name
  * (Crane), one tile coordinate (Merchant), two semicolon-separated tile
- * coordinates (Inventor), a roll total from 2-12 (Alchemist), or two
+ * coordinates (Inventor), a roll total from 2-12 (Alchemist), one
+ * intersection of three pipe-separated tile coordinates (Medicine), or two
  * semicolon-separated intersections, each three pipe-separated tile
- * coordinates (Diplomat); cards that don't need a target ignore the parameter.
+ * coordinates (Diplomat, Smith); cards that don't need a target ignore the
+ * parameter.
  *
  */
 public enum ProgressCardType {
@@ -144,47 +145,52 @@ public enum ProgressCardType {
         player.getImprovementLevel(track));
   }),
 
-  // Medicine gives 1 grain per wheat hex adjacent to the player's
-  // settlements or cities (regardless of building tier).
+  // Medicine's target is one intersection, three pipe-separated tile
+  // coordinates, naming a settlement of the player's to upgrade to a city
+  // for 2 ore and 1 grain instead of the normal 3 ore and 2 grain.
   MEDICINE(CityImprovement.SCIENCE, "Medicine", (ref, player, target) -> {
-    int grain = 0;
-    for (Tile tile : ref.getBoard().getTiles()) {
-      if (tile.getType() != TileType.WHEAT) {
-        continue;
-      }
-      for (Intersection i : tile.getIntersections()) {
-        if (i.getBuilding() == null
-            || !i.getBuilding().getPlayer().equals(player)) {
-          continue;
-        }
-        grain++;
-      }
+    IntersectionCoordinate coord;
+    try {
+      coord = parseIntersectionCoordinate(target);
+    } catch (Exception e) {
+      return "You played Medicine but didn't name a valid intersection.";
     }
-    if (grain > 0) {
-      player.addResource(Resource.WHEAT, grain, ref.getBank());
+    Intersection settlement = ref.getBoard().getIntersections().get(coord);
+    if (settlement == null || !settlement.canPlaceCity(player)) {
+      return "You played Medicine but that isn't your settlement.";
     }
-    return grain > 0
-        ? String.format("You played Medicine and received %d wheat.", grain)
-        : "You played Medicine but have no settlements or cities on a "
-            + "wheat hex.";
+    if (player.numCities() <= 0) {
+      return "You played Medicine but have no cities left to build.";
+    }
+    if (player.getResources().get(Resource.ORE) < 2
+        || player.getResources().get(Resource.WHEAT) < 1) {
+      return "You played Medicine but can't afford the discounted upgrade.";
+    }
+    player.removeResource(Resource.ORE, 2);
+    player.removeResource(Resource.WHEAT, 1);
+    player.useCity();
+    settlement.placeCity(player);
+    return "You played Medicine and upgraded a settlement to a city for 2 "
+        + "ore and 1 grain.";
   }),
 
-  // Mining gives 1 ore per ore hex adjacent to the player's settlements or
-  // cities (regardless of building tier).
+  // Mining gives 2 ore for each ore hex adjacent to at least one of the
+  // player's settlements or cities, counted once per hex.
   MINING(CityImprovement.SCIENCE, "Mining", (ref, player, target) -> {
-    int ore = 0;
+    int hexes = 0;
     for (Tile tile : ref.getBoard().getTiles()) {
       if (tile.getType() != TileType.ORE) {
         continue;
       }
       for (Intersection i : tile.getIntersections()) {
-        if (i.getBuilding() == null
-            || !i.getBuilding().getPlayer().equals(player)) {
-          continue;
+        if (i.getBuilding() != null
+            && i.getBuilding().getPlayer().equals(player)) {
+          hexes++;
+          break;
         }
-        ore++;
       }
     }
+    int ore = hexes * 2;
     if (ore > 0) {
       player.addResource(Resource.ORE, ore, ref.getBank());
     }
