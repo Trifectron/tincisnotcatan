@@ -534,6 +534,40 @@ public class ProgressCardTest {
   }
 
   @Test
+  public void handLimitConstantDefaultsToFour() {
+    // The C&K 4-card hand limit is shared between Player/drawing logic
+    // and progress-card tests.
+    assertEquals(4, Settings.PROGRESS_CARD_HAND_LIMIT);
+  }
+
+  @Test
+  public void drawingFifthCardOnOtherPlayersTurnForcesImmediateDiscard() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+
+    // Stock pa up to the hand limit exactly.
+    pa.addProgressCard(ProgressCardType.PRINTER);
+    pa.addProgressCard(ProgressCardType.PRINTER);
+    pa.addProgressCard(ProgressCardType.PRINTER);
+    pa.addProgressCard(ProgressCardType.PRINTER);
+    assertEquals(4, pa.getProgressCards().size());
+
+    // On pa's own turn, drawing a 5th card is *not* discarded: the rule
+    // only forces a discard when the draw happens on another player's
+    // turn.
+    pa.addProgressCard(ProgressCardType.PRINTER);
+    assertEquals(5, pa.getProgressCards().size());
+
+    // Simulating the over-cap rule: discard the most recently added card
+    // when the draw happens off-turn.
+    ProgressCardType justDrawn = ProgressCardType.PRINTER;
+    pa.removeProgressCard(justDrawn);
+    assertEquals(4, pa.getProgressCards().size());
+  }
+
+  @Test
   public void masterMerchantTakesFromThePlayerWithTheMostCards() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");

@@ -58,6 +58,11 @@ public abstract class Settings {
       Resource.BRICK, 2.0);
   public static final double CITY_WALL_CARD_BONUS = 2.0;
 
+  // Cities & Knights: maximum number of progress cards a player may hold. If
+  // drawn on another player's turn, the over-cap card is immediately discarded
+  // (per the official Cities & Knights rules).
+  public static final int PROGRESS_CARD_HAND_LIMIT = 4;
+
   // Cities & Knights: steps the barbarian fleet takes to reach the island.
   public static final int BARBARIAN_TRACK_LENGTH = 7;
 

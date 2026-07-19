@@ -13,6 +13,7 @@ import com.google.gson.JsonObject;
 import edu.brown.cs.board.City;
 import edu.brown.cs.board.Intersection;
 import edu.brown.cs.board.Tile;
+
 import edu.brown.cs.catan.CityImprovement;
 import edu.brown.cs.catan.Commodity;
 import edu.brown.cs.catan.Player;
@@ -336,6 +337,13 @@ public class RollDice implements FollowUpAction {
         ProgressCardType card = _ref.drawProgressCard(track);
         if (card != null) {
           _ref.getPlayerByID(p.getID()).addProgressCard(card);
+          // C&K hand-limit rule: drawing a 5th progress card on another
+          // player's turn forces an immediate discard (we discard the card
+          // just drawn; UI choice can be wired in later).
+          if (_ref.currentPlayer().getID() != p.getID()
+              && p.getProgressCards().size() > Settings.PROGRESS_CARD_HAND_LIMIT) {
+            p.removeProgressCard(card);
+          }
         }
       }
     }
