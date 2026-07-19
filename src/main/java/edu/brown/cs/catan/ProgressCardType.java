@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 
 import edu.brown.cs.actions.FollowUpAction;
 import edu.brown.cs.actions.MoveRobber;
+import edu.brown.cs.actions.PlaceRoad;
 import edu.brown.cs.actions.RollDice;
 import edu.brown.cs.board.City;
 import edu.brown.cs.board.HexCoordinate;
@@ -19,17 +20,19 @@ import edu.brown.cs.board.PathCoordinate;
 import edu.brown.cs.board.Tile;
 import edu.brown.cs.board.TileType;
 
+import com.google.common.collect.ImmutableList;
+
 /**
- * The catalog of Cities &amp; Knights progress cards. Each card belongs to one
+ * The catalog of Cities & Knights progress cards. Each card belongs to one
  * improvement deck (Trade, Politics, or Science) and carries its own effect.
  *
  * Cards that need a player-chosen target take it as a string in
  * {@link #play(Referee, Player, String)}: a resource name (Resource
- * Monopoly, Trade Monopoly, Merchant Fleet), one tile coordinate
- * (Merchant), two semicolon-separated tile coordinates (Inventor), a roll
- * total from 2-12 (Alchemist), or two semicolon-separated intersections,
- * each three pipe-separated tile coordinates (Diplomat); cards that don't
- * need a target ignore the parameter.
+ * Monopoly, Trade Monopoly, Merchant Fleet), an improvement track name
+ * (Crane), one tile coordinate (Merchant), two semicolon-separated tile
+ * coordinates (Inventor), a roll total from 2-12 (Alchemist), or two
+ * semicolon-separated intersections, each three pipe-separated tile
+ * coordinates (Diplomat); cards that don't need a target ignore the parameter.
  *
  */
 public enum ProgressCardType {
@@ -118,6 +121,95 @@ public enum ProgressCardType {
     rollAction.execute();
     return String.format(
         "You played Alchemist and forced the dice to produce %d.", roll);
+  }),
+
+  // Crane's target is the name of an improvement track ("trade", "politics",
+  // or "science"). Advances the player's level on that track for free.
+  CRANE(CityImprovement.SCIENCE, "Crane", (ref, player, target) -> {
+    CityImprovement track;
+    try {
+      track = CityImprovement.fromString(target);
+    } catch (Exception e) {
+      return "You played Crane but didn't name a valid track.";
+    }
+    if (player.getImprovementLevel(track) >= CityImprovement.MAX_LEVEL) {
+      return "You played Crane but that track is already maximized.";
+    }
+    // ponytail: the real Crane card moves one polygon-area token to a higher
+    // vertex for free; we synthesize the same effect as a free level-up on
+    // the named track (no commodity cost).
+    player.freeAdvanceImprovement(track);
+    return String.format("You played Crane and upgraded %s to level %d.",
+        track.toString().toLowerCase(),
+        player.getImprovementLevel(track));
+  }),
+
+  // Medicine gives 1 grain per wheat hex adjacent to the player's
+  // settlements or cities (regardless of building tier).
+  MEDICINE(CityImprovement.SCIENCE, "Medicine", (ref, player, target) -> {
+    int grain = 0;
+    for (Tile tile : ref.getBoard().getTiles()) {
+      if (tile.getType() != TileType.WHEAT) {
+        continue;
+      }
+      for (Intersection i : tile.getIntersections()) {
+        if (i.getBuilding() == null
+            || !i.getBuilding().getPlayer().equals(player)) {
+          continue;
+        }
+        grain++;
+      }
+    }
+    if (grain > 0) {
+      player.addResource(Resource.WHEAT, grain, ref.getBank());
+    }
+    return grain > 0
+        ? String.format("You played Medicine and received %d wheat.", grain)
+        : "You played Medicine but have no settlements or cities on a "
+            + "wheat hex.";
+  }),
+
+  // Mining gives 1 ore per ore hex adjacent to the player's settlements or
+  // cities (regardless of building tier).
+  MINING(CityImprovement.SCIENCE, "Mining", (ref, player, target) -> {
+    int ore = 0;
+    for (Tile tile : ref.getBoard().getTiles()) {
+      if (tile.getType() != TileType.ORE) {
+        continue;
+      }
+      for (Intersection i : tile.getIntersections()) {
+        if (i.getBuilding() == null
+            || !i.getBuilding().getPlayer().equals(player)) {
+          continue;
+        }
+        ore++;
+      }
+    }
+    if (ore > 0) {
+      player.addResource(Resource.ORE, ore, ref.getBank());
+    }
+    return ore > 0
+        ? String.format("You played Mining and received %d ore.", ore)
+        : "You played Mining but have no settlements or cities on an ore hex.";
+  }),
+
+  // Road Building lets the player place two free roads, just like the
+  // base-game development card.
+  ROAD_BUILDING(CityImprovement.SCIENCE, "Road Building", (ref, player,
+      target) -> {
+    boolean canPlace = false;
+    for (Path p : ref.getBoard().getPaths().values()) {
+      if (p.canPlaceRoad(player)) {
+        canPlace = true;
+        break;
+      }
+    }
+    if (!canPlace) {
+      return "You played Road Building but have no legal road placements.";
+    }
+    ref.addFollowUp(ImmutableList.of(new PlaceRoad(player.getID(), false)));
+    ref.addFollowUp(ImmutableList.of(new PlaceRoad(player.getID(), false)));
+    return "You played Road Building. Place two free roads.";
   }),
 
   // Politics deck.

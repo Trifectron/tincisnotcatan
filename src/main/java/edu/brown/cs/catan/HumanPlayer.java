@@ -272,6 +272,14 @@ public class HumanPlayer implements Player {
   }
 
   @Override
+  public void freeAdvanceImprovement(CityImprovement improvement) {
+    int level = cityImprovements.get(improvement);
+    if (level < CityImprovement.MAX_LEVEL) {
+      cityImprovements.put(improvement, level + 1);
+    }
+  }
+
+  @Override
   public List<ProgressCardType> getProgressCards() {
     return Collections.unmodifiableList(progressCards);
   }
@@ -711,6 +719,12 @@ public class HumanPlayer implements Player {
     public void improveCity(CityImprovement improvement) {
       throw new UnsupportedOperationException(
           "A ReadOnlyPlayer cannot improve cities.");
+    }
+
+    @Override
+    public void freeAdvanceImprovement(CityImprovement improvement) {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyPlayer cannot advance improvements.");
     }
 
     @Override

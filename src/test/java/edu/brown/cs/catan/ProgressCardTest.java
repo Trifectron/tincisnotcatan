@@ -42,14 +42,16 @@ public class ProgressCardTest {
   @Test
   public void deckHoldsOnlyItsTrackAndDrainsToEmpty() {
     ProgressCardDeck science = new ProgressCardDeck(CityImprovement.SCIENCE);
-    assertEquals(5, science.size());
+    assertEquals(9, science.size());
     Set<ProgressCardType> drawn = new HashSet<>();
     while (!science.isEmpty()) {
       drawn.add(science.draw());
     }
     assertEquals(EnumSet.of(ProgressCardType.PRINTER,
         ProgressCardType.IRRIGATION, ProgressCardType.ENGINEER,
-        ProgressCardType.INVENTOR, ProgressCardType.ALCHEMIST), drawn);
+        ProgressCardType.INVENTOR, ProgressCardType.ALCHEMIST,
+        ProgressCardType.CRANE, ProgressCardType.MEDICINE,
+        ProgressCardType.MINING, ProgressCardType.ROAD_BUILDING), drawn);
     assertNull(science.draw());
 
     ProgressCardDeck politics = new ProgressCardDeck(CityImprovement.POLITICS);
@@ -178,6 +180,183 @@ public class ProgressCardTest {
 
     String msg = ProgressCardType.ENGINEER.play(ref, p);
     assertTrue(msg.contains("no unwalled city"));
+  }
+
+  @Test
+  public void craneAdvancesTheNamedTrackForFree() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+
+    assertEquals(0, p.getImprovementLevel(CityImprovement.TRADE));
+    String msg = ProgressCardType.CRANE.play(ref, p, "trade");
+    assertEquals(1, p.getImprovementLevel(CityImprovement.TRADE));
+    assertTrue(msg.contains("trade"));
+
+    // The free upgrade doesn't consume any commodities.
+    assertEquals(0.0, p.getCommodities().get(Commodity.CLOTH), 0.0001);
+  }
+
+  @Test
+  public void craneAdvancesEvenWithoutTheCommodity() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+    // Player holds zero cloth — the regular improveCity flow would refuse,
+    // but Crane grants a free level-up regardless.
+    assertEquals(0.0, p.getCommodities().get(Commodity.CLOTH), 0.0001);
+
+    ProgressCardType.CRANE.play(ref, p, "trade");
+    assertEquals(1, p.getImprovementLevel(CityImprovement.TRADE));
+  }
+
+  @Test
+  public void craneRejectsUnknownTrackAndMaxLevel() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+    assertTrue(ProgressCardType.CRANE.play(ref, p, "banking")
+        .contains("didn't name a valid"));
+
+    // Drive TRADE up to the maximum through commodities, then expect a
+    // rejection.
+    int clothNeeded = 1 + 2 + 3 + 4 + 5;
+    p.addCommodity(Commodity.CLOTH, clothNeeded);
+    for (int level = 0; level < CityImprovement.MAX_LEVEL; level++) {
+      while (!p.canImproveCity(CityImprovement.TRADE)) {
+        // shouldn't trip, but guard against an off-by-one
+        p.addCommodity(Commodity.CLOTH, 1);
+      }
+      p.improveCity(CityImprovement.TRADE);
+    }
+    assertEquals(CityImprovement.MAX_LEVEL,
+        p.getImprovementLevel(CityImprovement.TRADE));
+
+    String msg = ProgressCardType.CRANE.play(ref, p, "trade");
+    assertTrue(msg.contains("already maximized"));
+  }
+
+  @Test
+  public void medicinePaysOneWheatPerAdjacentWheatHex() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+
+    Tile wheatTile = null;
+    for (Tile tile : ref.getBoard().getTiles()) {
+      if (tile.getType() == TileType.WHEAT) {
+        wheatTile = tile;
+        break;
+      }
+    }
+    assertTrue("Standard board should have a wheat hex", wheatTile != null);
+    Intersection settlementInt = wheatTile.getIntersections().iterator()
+        .next();
+    settlementInt.placeSettlement(p);
+
+    int expectedWheat = 0;
+    for (Tile tile : ref.getBoard().getTiles()) {
+      if (tile.getType() == TileType.WHEAT
+          && tile.getIntersections().contains(settlementInt)) {
+        expectedWheat++;
+      }
+    }
+
+    double before = p.getResources().get(Resource.WHEAT);
+    String msg = ProgressCardType.MEDICINE.play(ref, p);
+    assertEquals(before + expectedWheat, p.getResources().get(Resource.WHEAT),
+        0.0001);
+    assertTrue(msg.contains("wheat"));
+  }
+
+  @Test
+  public void medicineNoOpWithoutAdjacentBuilding() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+
+    double before = p.getResources().get(Resource.WHEAT);
+    String msg = ProgressCardType.MEDICINE.play(ref, p);
+    assertEquals(before, p.getResources().get(Resource.WHEAT), 0.0001);
+    assertTrue(msg.contains("no settlements"));
+  }
+
+  @Test
+  public void miningPaysOneOrePerAdjacentOreHex() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+
+    Tile oreTile = null;
+    for (Tile tile : ref.getBoard().getTiles()) {
+      if (tile.getType() == TileType.ORE) {
+        oreTile = tile;
+        break;
+      }
+    }
+    assertTrue("Standard board should have an ore hex", oreTile != null);
+    Intersection settlementInt = oreTile.getIntersections().iterator()
+        .next();
+    settlementInt.placeSettlement(p);
+
+    int expectedOre = 0;
+    for (Tile tile : ref.getBoard().getTiles()) {
+      if (tile.getType() == TileType.ORE
+          && tile.getIntersections().contains(settlementInt)) {
+        expectedOre++;
+      }
+    }
+
+    double before = p.getResources().get(Resource.ORE);
+    String msg = ProgressCardType.MINING.play(ref, p);
+    assertEquals(before + expectedOre, p.getResources().get(Resource.ORE),
+        0.0001);
+    assertTrue(msg.contains("ore"));
+  }
+
+  @Test
+  public void miningNoOpWithoutAdjacentBuilding() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+
+    double before = p.getResources().get(Resource.ORE);
+    String msg = ProgressCardType.MINING.play(ref, p);
+    assertEquals(before, p.getResources().get(Resource.ORE), 0.0001);
+    assertTrue(msg.contains("no settlements"));
+  }
+
+  @Test
+  public void roadBuildingEnqueuesAPlaceRoadFollowUp() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+    // Place a settlement so the player has a legal road placement; without
+    // it Road Building correctly bails out and enqueues nothing.
+    Intersection settlementInt = null;
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      if (i.getBuilding() == null) {
+        settlementInt = i;
+        break;
+      }
+    }
+    assertNotNull(settlementInt);
+    settlementInt.placeSettlement(p);
+    assertNull(ref.getNextFollowUp(p0));
+
+    String msg = ProgressCardType.ROAD_BUILDING.play(ref, p);
+    assertNotNull("Expected a follow-up action to be enqueued",
+        ref.getNextFollowUp(p0));
+    assertEquals("placeRoad", ref.getNextFollowUp(p0).getID());
+    assertTrue(msg.contains("two free roads"));
   }
 
   @Test

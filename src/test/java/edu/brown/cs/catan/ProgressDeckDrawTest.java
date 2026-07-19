@@ -22,15 +22,17 @@ public class ProgressDeckDrawTest {
   @Test
   public void citiesAndKnightsGameDrawsFromTrackDecks() {
     Referee ref = citiesAndKnightsReferee();
-    // The Science deck holds Printer, Irrigation, Engineer, Inventor, and
-    // Alchemist.
+    // The Science deck holds Printer, Irrigation, Engineer, Inventor,
+    // Alchemist, Crane, Medicine, Mining, and Road Building.
     Set<ProgressCardType> drawnScience = new HashSet<>();
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 9; i++) {
       drawnScience.add(ref.drawProgressCard(CityImprovement.SCIENCE));
     }
     assertEquals(EnumSet.of(ProgressCardType.PRINTER,
         ProgressCardType.IRRIGATION, ProgressCardType.ENGINEER,
-        ProgressCardType.INVENTOR, ProgressCardType.ALCHEMIST),
+        ProgressCardType.INVENTOR, ProgressCardType.ALCHEMIST,
+        ProgressCardType.CRANE, ProgressCardType.MEDICINE,
+        ProgressCardType.MINING, ProgressCardType.ROAD_BUILDING),
         drawnScience);
     assertNull(ref.drawProgressCard(CityImprovement.SCIENCE));
     // The Politics deck holds Constitution, Intrigue, Wedding, Bishop, and
