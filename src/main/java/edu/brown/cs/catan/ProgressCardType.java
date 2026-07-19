@@ -97,6 +97,10 @@ public enum ProgressCardType {
     if (firstTile == null || secondTile == null) {
       return "You played Inventor but named a tile that isn't on the board.";
     }
+    if (isUnswappableNumber(firstTile.getRollNumber())
+        || isUnswappableNumber(secondTile.getRollNumber())) {
+      return "You played Inventor but can't move a 2, 6, 8, or 12 token.";
+    }
     int firstNum = firstTile.getRollNumber();
     firstTile.setRollNumber(secondTile.getRollNumber());
     secondTile.setRollNumber(firstNum);
@@ -128,7 +132,8 @@ public enum ProgressCardType {
   }),
 
   // Crane's target is the name of an improvement track ("trade", "politics",
-  // or "science"). Advances the player's level on that track for free.
+  // or "science"). Advances the player's level on that track for 1 fewer
+  // commodity than normal (a first-level improvement becomes free).
   CRANE(CityImprovement.SCIENCE, "Crane", (ref, player, target) -> {
     CityImprovement track;
     try {
@@ -136,14 +141,18 @@ public enum ProgressCardType {
     } catch (Exception e) {
       return "You played Crane but didn't name a valid track.";
     }
-    if (player.getImprovementLevel(track) >= CityImprovement.MAX_LEVEL) {
+    int level = player.getImprovementLevel(track);
+    if (level >= CityImprovement.MAX_LEVEL) {
       return "You played Crane but that track is already maximized.";
     }
-    // ponytail: the real Crane card moves one polygon-area token to a higher
-    // vertex for free; we synthesize the same effect as a free level-up on
-    // the named track (no commodity cost).
+    int discountedCost = level;
+    if (!player.hasCommodity(track.getCommodity(), discountedCost)) {
+      return "You played Crane but can't afford the discounted improvement.";
+    }
+    player.removeCommodity(track.getCommodity(), discountedCost);
     player.freeAdvanceImprovement(track);
-    return String.format("You played Crane and upgraded %s to level %d.",
+    return String.format(
+        "You played Crane and upgraded %s to level %d for 1 fewer commodity.",
         track.toString().toLowerCase(),
         player.getImprovementLevel(track));
   }),
@@ -324,10 +333,10 @@ public enum ProgressCardType {
 
   BISHOP(CityImprovement.POLITICS, "Bishop", (ref, player, target) -> {
     Collection<FollowUpAction> followUp = new ArrayList<>();
-    followUp.add(new MoveRobber(player.getID()));
+    followUp.add(MoveRobber.stealFromAll(player.getID()));
     ref.addFollowUp(followUp);
-    return "You played Bishop. Move the robber; whoever ends up on that "
-        + "hex must give you a card.";
+    return "You played Bishop. Move the robber; everyone on that hex must "
+        + "give you a card.";
   }),
 
   // Diplomat's target is two semicolon-separated intersections, each three
@@ -378,15 +387,24 @@ public enum ProgressCardType {
     if (destination.getType().getType() == null) {
       return "You played Merchant but that hex doesn't produce a resource.";
     }
+    boolean adjacentToOwnBuilding = false;
+    for (Intersection i : destination.getIntersections()) {
+      if (i.getBuilding() != null && i.getBuilding().getPlayer()
+          .equals(player)) {
+        adjacentToOwnBuilding = true;
+        break;
+      }
+    }
+    if (!adjacentToOwnBuilding) {
+      return "You played Merchant but that hex isn't adjacent to one of "
+          + "your settlements or cities.";
+    }
     int previousOwner = previousTile == null ? -1
         : previousTile.getMerchantOwner();
     if (previousTile != null) {
       previousTile.setMerchantOwner(-1);
     }
     destination.setMerchantOwner(player.getID());
-    // ponytail: the real rule requires the hex be adjacent to one of your
-    // settlements/cities; skipped since no other targeted card enforces
-    // board-position eligibility either. Add if this gets exploited.
     if (previousOwner != player.getID()) {
       if (previousOwner >= 0) {
         ref.getPlayerByID(previousOwner).addVictoryPoints(-1);
@@ -569,6 +587,12 @@ public enum ProgressCardType {
     }
     throw new IllegalArgumentException(String.format(
         "No progress card named %s.", name));
+  }
+
+  // Inventor may not touch the 2, 6, 8, or 12 tokens.
+  private static boolean isUnswappableNumber(int rollNumber) {
+    return rollNumber == 2 || rollNumber == 6 || rollNumber == 8
+        || rollNumber == 12;
   }
 
   // Parses "x,y,z" into a HexCoordinate, for Inventor's tile targets.

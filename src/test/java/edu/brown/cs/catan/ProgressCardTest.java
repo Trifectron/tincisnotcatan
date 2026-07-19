@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import org.junit.Test;
@@ -15,8 +16,10 @@ import org.junit.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 
+import edu.brown.cs.actions.FollowUpAction;
 import edu.brown.cs.actions.RollDice;
 import edu.brown.cs.board.City;
+import edu.brown.cs.board.HexCoordinate;
 import edu.brown.cs.board.Intersection;
 import edu.brown.cs.board.IntersectionCoordinate;
 import edu.brown.cs.board.Path;
@@ -238,6 +241,42 @@ public class ProgressCardTest {
 
     String msg = ProgressCardType.CRANE.play(ref, p, "trade");
     assertTrue(msg.contains("already maximized"));
+  }
+
+  @Test
+  public void craneChargesOneFewerCommodityAtHigherLevels() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+    // Normal cost from level 1 to level 2 is 2 cloth; Crane should charge 1.
+    p.addCommodity(Commodity.CLOTH, 1);
+    p.improveCity(CityImprovement.TRADE);
+    assertEquals(1, p.getImprovementLevel(CityImprovement.TRADE));
+    p.addCommodity(Commodity.CLOTH, 1);
+
+    String msg = ProgressCardType.CRANE.play(ref, p, "trade");
+
+    assertEquals(2, p.getImprovementLevel(CityImprovement.TRADE));
+    assertEquals(0.0, p.getCommodities().get(Commodity.CLOTH), 0.0001);
+    assertTrue(msg.contains("1 fewer commodity"));
+  }
+
+  @Test
+  public void craneRejectsWithoutEnoughForTheDiscount() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+    p.addCommodity(Commodity.CLOTH, 1);
+    p.improveCity(CityImprovement.TRADE);
+    assertEquals(1, p.getImprovementLevel(CityImprovement.TRADE));
+    // No cloth left to pay the discounted cost of 1.
+
+    String msg = ProgressCardType.CRANE.play(ref, p, "trade");
+
+    assertEquals(1, p.getImprovementLevel(CityImprovement.TRADE));
+    assertTrue(msg.contains("can't afford"));
   }
 
   @Test
@@ -562,19 +601,72 @@ public class ProgressCardTest {
   }
 
   @Test
+  public void bishopStealsFromEveryPlayerOnTheNewHex() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    int p2 = ref.addPlayer("C", "#222222");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+    Player pc = ref.getPlayerByID(p2);
+    pb.addResource(Resource.WHEAT, 1, ref.getBank());
+    pc.addResource(Resource.ORE, 1, ref.getBank());
+    // pd (a fourth, resourceless player) should be skipped entirely even if
+    // it shares the hex.
+    Tile target = null;
+    for (Tile t : ref.getBoard().getTiles()) {
+      if (!t.hasRobber()) {
+        target = t;
+        break;
+      }
+    }
+    Iterator<Intersection> corners = target.getIntersections().iterator();
+    corners.next().placeSettlement(pb);
+    corners.next().placeSettlement(pc);
+
+    ProgressCardType.BISHOP.play(ref, pa);
+    FollowUpAction followUp = ref.getNextFollowUp(p0);
+    HexCoordinate coord = target.getCoordinate();
+    JsonObject location = new JsonObject();
+    location.addProperty("x", coord.getX());
+    location.addProperty("y", coord.getY());
+    location.addProperty("z", coord.getZ());
+    JsonObject json = new JsonObject();
+    json.add("newLocation", location);
+    followUp.setupAction(ref, p0, json);
+    followUp.execute();
+
+    assertEquals(0.0, pb.getResources().get(Resource.WHEAT), 0.0001);
+    assertEquals(0.0, pc.getResources().get(Resource.ORE), 0.0001);
+    assertEquals(2.0, pa.getNumResourceCards(), 0.0001);
+  }
+
+  private static boolean isUnswappableNumber(int rollNumber) {
+    return rollNumber == 2 || rollNumber == 6 || rollNumber == 8
+        || rollNumber == 12;
+  }
+
+  @Test
   public void inventorSwapsTwoTilesNumbers() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");
     Player pa = ref.getPlayerByID(p0);
 
-    Tile first = ref.getBoard().getTiles().iterator().next();
+    Tile first = null;
     Tile second = null;
     for (Tile t : ref.getBoard().getTiles()) {
-      if (!t.equals(first) && t.getRollNumber() != first.getRollNumber()) {
+      if (isUnswappableNumber(t.getRollNumber())) {
+        continue;
+      }
+      if (first == null) {
+        first = t;
+      } else if (t.getRollNumber() != first.getRollNumber()) {
         second = t;
         break;
       }
     }
+    assertTrue("Standard board should have two swappable, differing tiles",
+        second != null);
     int firstBefore = first.getRollNumber();
     int secondBefore = second.getRollNumber();
     String target = String.format("%d,%d,%d;%d,%d,%d",
@@ -599,6 +691,35 @@ public class ProgressCardTest {
     assertTrue(msg.contains("isn't on the board"));
   }
 
+  @Test
+  public void inventorRejectsTwoSixEightAndTwelveTokens() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    Player pa = ref.getPlayerByID(p0);
+
+    Tile unswappable = null;
+    Tile other = null;
+    for (Tile t : ref.getBoard().getTiles()) {
+      if (isUnswappableNumber(t.getRollNumber())) {
+        unswappable = t;
+      } else if (other == null) {
+        other = t;
+      }
+    }
+    assertTrue("Standard board should have a 2/6/8/12 tile",
+        unswappable != null);
+    String target = String.format("%d,%d,%d;%d,%d,%d",
+        unswappable.getCoordinate().getX(), unswappable.getCoordinate().getY(),
+        unswappable.getCoordinate().getZ(), other.getCoordinate().getX(),
+        other.getCoordinate().getY(), other.getCoordinate().getZ());
+
+    int unswappableBefore = unswappable.getRollNumber();
+    String msg = ProgressCardType.INVENTOR.play(ref, pa, target);
+
+    assertEquals(unswappableBefore, unswappable.getRollNumber());
+    assertTrue(msg.contains("2, 6, 8, or 12"));
+  }
+
   private static Tile findResourceTile(MasterReferee ref, Tile exclude) {
     for (Tile t : ref.getBoard().getTiles()) {
       if (t.getType().getType() != null && !t.equals(exclude)) {
@@ -621,6 +742,7 @@ public class ProgressCardTest {
     Player pa = ref.getPlayerByID(p0);
     Tile tile = findResourceTile(ref, null);
     Resource res = tile.getType().getType();
+    tile.getIntersections().iterator().next().placeSettlement(pa);
     int vpBefore = pa.numVictoryPoints();
 
     String msg = ProgressCardType.MERCHANT.play(ref, pa, coordTarget(tile));
@@ -638,6 +760,8 @@ public class ProgressCardTest {
     Player pa = ref.getPlayerByID(p0);
     Tile first = findResourceTile(ref, null);
     Tile second = findResourceTile(ref, first);
+    first.getIntersections().iterator().next().placeSettlement(pa);
+    second.getIntersections().iterator().next().placeSettlement(pa);
     int vpBefore = pa.numVictoryPoints();
 
     ProgressCardType.MERCHANT.play(ref, pa, coordTarget(first));
@@ -656,6 +780,9 @@ public class ProgressCardTest {
     Player pa = ref.getPlayerByID(p0);
     Player pb = ref.getPlayerByID(p1);
     Tile tile = findResourceTile(ref, null);
+    Iterator<Intersection> corners = tile.getIntersections().iterator();
+    corners.next().placeSettlement(pa);
+    corners.next().placeSettlement(pb);
     int paVpBefore = pa.numVictoryPoints();
     int pbVpBefore = pb.numVictoryPoints();
 
@@ -678,6 +805,19 @@ public class ProgressCardTest {
     // actually far off the board.
     String msg = ProgressCardType.MERCHANT.play(ref, pa, "0,100,0");
     assertTrue(msg.contains("isn't on the board"));
+  }
+
+  @Test
+  public void merchantRejectsAHexNotAdjacentToYourOwnBuilding() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    Player pa = ref.getPlayerByID(p0);
+    Tile tile = findResourceTile(ref, null);
+
+    String msg = ProgressCardType.MERCHANT.play(ref, pa, coordTarget(tile));
+
+    assertEquals(-1, tile.getMerchantOwner());
+    assertTrue(msg.contains("adjacent"));
   }
 
   @Test

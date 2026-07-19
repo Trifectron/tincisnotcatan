@@ -1,8 +1,10 @@
 package edu.brown.cs.actions;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,6 +33,7 @@ public class MoveRobber implements FollowUpAction {
   private final static String VERB = "move the Robber";
   private boolean _isTurnStart = false;
   private boolean _sevenWasRolled = false;
+  private boolean _stealFromAll = false;
 
   public MoveRobber(int playerID) {
     _playerID = playerID;
@@ -47,6 +50,17 @@ public class MoveRobber implements FollowUpAction {
     _playerID = playerID;
     _isSetup = false;
     _sevenWasRolled = sevenWasRolled;
+  }
+
+  /**
+   * Cities &amp; Knights Bishop card mode: instead of letting the mover
+   * choose one victim, takes one random card from every player on the new
+   * hex.
+   */
+  public static MoveRobber stealFromAll(int playerID) {
+    MoveRobber robber = new MoveRobber(playerID);
+    robber._stealFromAll = true;
+    return robber;
   }
 
 
@@ -84,6 +98,9 @@ public class MoveRobber implements FollowUpAction {
     }
     playersOnTile = temp;
     _ref.removeFollowUp(this);
+    if (_stealFromAll) {
+      return stealFromEveryPlayer(playersOnTile);
+    }
     if (!playersOnTile.isEmpty()) {
       FollowUpAction followUp = new TakeCardAction(_playerID, playersOnTile); // TODO!
       _ref.addFollowUp(ImmutableList.of(followUp));
@@ -105,6 +122,40 @@ public class MoveRobber implements FollowUpAction {
       } else {
         toRet.put(p.getID(), toAll);
       }
+    }
+    return toRet;
+  }
+
+  // Cities & Knights Bishop card: take one random card from every player on
+  // the new hex, with no choice involved.
+  private Map<Integer, ActionResponse> stealFromEveryPlayer(
+      Set<Integer> victimIDs) {
+    Player thief = _ref.getPlayerByID(_playerID);
+    for (int victimID : victimIDs) {
+      Player victim = _ref.getPlayerByID(victimID);
+      List<Resource> pool = new ArrayList<>();
+      for (Map.Entry<Resource, Double> res : victim.getResources().entrySet()) {
+        for (int i = 0; i < res.getValue(); i++) {
+          pool.add(res.getKey());
+        }
+      }
+      Collections.shuffle(pool);
+      Resource taken = pool.get(0);
+      victim.removeResource(taken, 1, _ref.getBank());
+      thief.addResource(taken, 1, _ref.getBank());
+    }
+    String message = victimIDs.isEmpty()
+        ? "You played Bishop. No one had a card to give up."
+        : String.format(
+            "You played Bishop and took a card from every player (%d) "
+                + "adjacent to the robber.", victimIDs.size());
+    ActionResponse toPlayer = new ActionResponse(true, message, null);
+    String messageToAll = String.format(
+        "%s played Bishop and moved the Robber", thief.getName());
+    ActionResponse toAll = new ActionResponse(true, messageToAll, null);
+    Map<Integer, ActionResponse> toRet = new HashMap<>();
+    for (Player p : _ref.getPlayers()) {
+      toRet.put(p.getID(), p.getID() == _playerID ? toPlayer : toAll);
     }
     return toRet;
   }
