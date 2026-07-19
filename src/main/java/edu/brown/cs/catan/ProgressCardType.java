@@ -44,20 +44,23 @@ public enum ProgressCardType {
     return "You played Printer and gained a victory point.";
   }),
 
+  // Irrigation gives 2 grain for each grain hex adjacent to at least one of
+  // the player's settlements or cities, counted once per hex.
   IRRIGATION(CityImprovement.SCIENCE, "Irrigation", (ref, player, target) -> {
-    int wheat = 0;
+    int hexes = 0;
     for (Tile tile : ref.getBoard().getTiles()) {
       if (tile.getType() != TileType.WHEAT) {
         continue;
       }
       for (Intersection i : tile.getIntersections()) {
-        if (i.getBuilding() == null || !i.getBuilding().getPlayer()
-            .equals(player)) {
-          continue;
+        if (i.getBuilding() != null
+            && i.getBuilding().getPlayer().equals(player)) {
+          hexes++;
+          break;
         }
-        wheat += i.getBuilding() instanceof City ? 4 : 2;
       }
     }
+    int wheat = hexes * 2;
     if (wheat > 0) {
       player.addResource(Resource.WHEAT, wheat, ref.getBank());
     }
