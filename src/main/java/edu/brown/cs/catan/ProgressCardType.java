@@ -597,26 +597,25 @@ public enum ProgressCardType {
   }),
 
   MASTER_MERCHANT(CityImprovement.TRADE, "Master Merchant", (ref, player, target) -> {
-    Player richest = null;
-    double richestCount = 0;
+    // Per the Mayfair rulebook, Master Merchant targets the opponent with
+    // the most victory points (public), not the most resource cards.
+    Player victimVP = null;
+    int highestVP = -1;
     for (Player other : ref.getPlayers()) {
       if (other.equals(player)) {
         continue;
       }
-      double count = 0;
-      for (double n : other.getResources().values()) {
-        count += n;
-      }
-      // ponytail: ties keep the first player found; the real rule lets the
-      // card's player break ties, which needs a target parameter to support.
-      if (count > richestCount) {
-        richestCount = count;
-        richest = other;
+      int publicVP = ref.getNumPublicPoints(other.getID());
+      if (victimVP == null || publicVP > highestVP) {
+        highestVP = publicVP;
+        victimVP = other;
       }
     }
-    if (richest == null) {
-      return "You played Master Merchant but no other player holds any cards.";
+    if (victimVP == null) {
+      return "You played Master Merchant but no other player is holding any "
+          + "victory points.";
     }
+    Player richest = victimVP;
     int received = 0;
     for (int i = 0; i < 2; i++) {
       Resource biggest = null;
@@ -636,7 +635,8 @@ public enum ProgressCardType {
       received++;
     }
     return String.format(
-        "You played Master Merchant and took %d resource card(s) from %s.",
+        "You played Master Merchant and took %d resource card(s) from %s "
+            + "(highest VP).",
         received, richest.getName());
   }),
 

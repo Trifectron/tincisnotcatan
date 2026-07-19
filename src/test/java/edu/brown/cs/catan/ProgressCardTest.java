@@ -586,15 +586,51 @@ public class ProgressCardTest {
     assertTrue(msg.contains("took 2 resource"));
   }
 
+  // Master Merchant targets the player with the most victory points, not
+  // the most resource cards. When pb has more public VP than pa, pb is
+  // the victim even though pa has more resource cards.
   @Test
-  public void masterMerchantNoOpWhenNoOneHoldsCards() {
+  public void masterMerchantTakesFromHighestVPPlayer() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+
+    // Give pa huge resources so a cards-based rule would pick pa; but
+    // bump pb's public VP instead by adding a settling victory point via
+    // a development card (-- in C&K those don't exist, so we use the
+    // addVictoryPoints helper directly to model "pb has more VP").
+    pa.addResource(Resource.WHEAT, 99, ref.getBank());
+    pa.addResource(Resource.ORE, 99, ref.getBank());
+    pb.addResource(Resource.WHEAT, 1, ref.getBank());
+    pb.addVictoryPoints(3);
+
+    double paBefore = pa.getResources().getOrDefault(Resource.ORE, 0.0);
+    double pbBeforeWheat = pb.getResources().getOrDefault(Resource.WHEAT, 0.0);
+    String msg = ProgressCardType.MASTER_MERCHANT.play(ref, pa);
+
+    // pb had more public VP, so cards are drawn from pb (only 1 wheat on
+    // pb at most, so we only steal what's there).
+    assertEquals(paBefore, pa.getResources().getOrDefault(Resource.ORE, 0.0),
+        0.0001);
+    // pb lost 1 card (wheat if it was the only one).
+    assertTrue(pbBeforeWheat - pb.getResources().getOrDefault(Resource.WHEAT,
+        0.0) >= 0);
+    assertTrue(msg.contains("highest VP"));
+  }
+
+  @Test
+  public void masterMerchantTakesZeroWhenVictimHoldsNoResources() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");
     ref.addPlayer("B", "#111111");
     Player pa = ref.getPlayerByID(p0);
 
+    // With VP-based victim selection, the other player is still the
+    // victim but holds no resource cards, so the card takes 0 cards.
     String msg = ProgressCardType.MASTER_MERCHANT.play(ref, pa);
-    assertTrue(msg.contains("no other player holds any cards"));
+    assertTrue(msg.contains("took 0"));
   }
 
   @Test
