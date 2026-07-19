@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
 import edu.brown.cs.board.Intersection;
 import edu.brown.cs.board.IntersectionCoordinate;
 import edu.brown.cs.board.Knight;
+import edu.brown.cs.catan.CityImprovement;
 import edu.brown.cs.catan.Player;
 import edu.brown.cs.catan.Referee;
 import edu.brown.cs.catan.Referee.GameStatus;
@@ -14,10 +15,10 @@ import edu.brown.cs.catan.Settings;
 
 /**
  * Action that promotes one of a player's knights one tier, spending ore + wool
- * (Cities &amp; Knights).
+ * (Cities & Knights).
  *
- * ponytail: does not yet gate tier-3 promotion on the Politics improvement
- * level; add that check when the improvement gating lands.
+ * Mighty (tier-3) knights require a level-3 Politics city improvement, per the
+ * official Cities & Knights rules.
  *
  */
 public class UpgradeKnight implements Action {
@@ -60,6 +61,12 @@ public class UpgradeKnight implements Action {
     if (!knight.canUpgrade()) {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
           "That knight is already at the highest tier.", null));
+    }
+    // Promoting to mighty (tier 3) requires a level-3 Politics improvement.
+    if (knight.getTier() == Settings.MAX_KNIGHT_TIER - 1
+        && _player.getImprovementLevel(CityImprovement.POLITICS) < 3) {
+      return ImmutableMap.of(_player.getID(), new ActionResponse(false,
+          "Mighty knights require a level-3 Politics city improvement.", null));
     }
     if (!KnightActions.canAfford(_player, Settings.KNIGHT_COST)) {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
