@@ -45,7 +45,8 @@ public class ProgressCardTest {
   @Test
   public void deckHoldsOnlyItsTrackAndDrainsToEmpty() {
     ProgressCardDeck science = new ProgressCardDeck(CityImprovement.SCIENCE);
-    assertEquals(10, science.size());
+    // 10 science card types, 2 copies each = 20 cards.
+    assertEquals(20, science.size());
     Set<ProgressCardType> drawn = new HashSet<>();
     while (!science.isEmpty()) {
       drawn.add(science.draw());
@@ -58,8 +59,9 @@ public class ProgressCardTest {
         ProgressCardType.ROAD_BUILDING), drawn);
     assertNull(science.draw());
 
+    // 9 politics card types, 2 copies each = 18 cards.
     ProgressCardDeck politics = new ProgressCardDeck(CityImprovement.POLITICS);
-    assertEquals(9, politics.size());
+    assertEquals(18, politics.size());
     Set<ProgressCardType> drawnPolitics = new HashSet<>();
     while (!politics.isEmpty()) {
       drawnPolitics.add(politics.draw());
@@ -69,9 +71,11 @@ public class ProgressCardTest {
         ProgressCardType.BISHOP, ProgressCardType.DIPLOMAT,
         ProgressCardType.DESERTER, ProgressCardType.SABOTEUR,
         ProgressCardType.SPY, ProgressCardType.WARLORD), drawnPolitics);
+    assertNull(politics.draw());
 
+    // 5 trade card types, 2 copies each = 10 cards.
     ProgressCardDeck trade = new ProgressCardDeck(CityImprovement.TRADE);
-    assertEquals(5, trade.size());
+    assertEquals(10, trade.size());
     Set<ProgressCardType> drawnTrade = new HashSet<>();
     while (!trade.isEmpty()) {
       drawnTrade.add(trade.draw());
@@ -471,6 +475,62 @@ public class ProgressCardTest {
 
     String msg = ProgressCardType.WEDDING.play(ref, pa);
     assertTrue(msg.contains("no player has more victory points"));
+  }
+
+  @Test
+  public void weddingFallsBackToCommoditiesWhenVictimHasNoResources() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+
+    // pb is richer in VPs but holds no resources — only commodities. The
+    // official Cities & Knights rule lets Wedding take commodities as a
+    // fallback.
+    pb.addVictoryPoints(1);
+    pb.addCommodity(Commodity.CLOTH, 5);
+
+    double paBefore = pa.getCommodities().get(Commodity.CLOTH);
+    double pbBefore = pb.getCommodities().get(Commodity.CLOTH);
+    String msg = ProgressCardType.WEDDING.play(ref, pa);
+
+    assertEquals(paBefore + 2, pa.getCommodities().get(Commodity.CLOTH),
+        0.0001);
+    assertEquals(pbBefore - 2, pb.getCommodities().get(Commodity.CLOTH),
+        0.0001);
+    assertTrue(msg.contains("received 2 commodity"));
+  }
+
+  @Test
+  public void weddingTakesResourcesFirstThenCommoditiesIfNeeded() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+
+    // pb is richer and holds exactly 1 resource; the second card the
+    // Wedding takes should fall through to commodities.
+    pb.addVictoryPoints(1);
+    pb.addResource(Resource.ORE, 1, ref.getBank());
+    pb.addCommodity(Commodity.COIN, 3);
+
+    double paOreBefore = pa.getResources().get(Resource.ORE);
+    double paCoinBefore = pa.getCommodities().get(Commodity.COIN);
+    double pbOreBefore = pb.getResources().get(Resource.ORE);
+    double pbCoinBefore = pb.getCommodities().get(Commodity.COIN);
+    String msg = ProgressCardType.WEDDING.play(ref, pa);
+
+    assertEquals(paOreBefore + 1, pa.getResources().get(Resource.ORE), 0.0001);
+    assertEquals(pbOreBefore - 1, pb.getResources().get(Resource.ORE), 0.0001);
+    assertEquals(paCoinBefore + 1, pa.getCommodities().get(Commodity.COIN),
+        0.0001);
+    assertEquals(pbCoinBefore - 1, pb.getCommodities().get(Commodity.COIN),
+        0.0001);
+    assertTrue(msg.contains("received 2 card(s)"));
+    assertTrue(msg.contains("1 resource"));
+    assertTrue(msg.contains("1 commodity"));
   }
 
   @Test

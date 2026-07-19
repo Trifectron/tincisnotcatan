@@ -321,33 +321,67 @@ public enum ProgressCardType {
 
   WEDDING(CityImprovement.POLITICS, "Wedding", (ref, player, target) -> {
     int received = 0;
+    int resourcesTaken = 0;
+    int commoditiesTaken = 0;
     for (Player other : ref.getPlayers()) {
       if (other.equals(player)
           || other.numVictoryPoints() <= player.numVictoryPoints()) {
         continue;
       }
       for (int i = 0; i < 2; i++) {
-        Resource biggest = null;
-        double max = 0;
+        // Prefer to take the victim's most-plentiful resource; if they
+        // hold no resources at all, fall back to their most-plentiful
+        // commodity per the official Cities & Knights rule.
+        Resource biggestRes = null;
+        double maxRes = 0;
         for (Map.Entry<Resource, Double> entry : other.getResources()
             .entrySet()) {
-          if (entry.getValue() > max) {
-            max = entry.getValue();
-            biggest = entry.getKey();
+          if (entry.getValue() > maxRes) {
+            maxRes = entry.getValue();
+            biggestRes = entry.getKey();
           }
         }
-        if (biggest == null) {
+        if (biggestRes != null) {
+          other.removeResource(biggestRes, 1, ref.getBank());
+          player.addResource(biggestRes, 1, ref.getBank());
+          received++;
+          resourcesTaken++;
+          continue;
+        }
+        Commodity biggestCom = null;
+        double maxCom = 0;
+        for (Map.Entry<Commodity, Double> entry : other.getCommodities()
+            .entrySet()) {
+          if (entry.getValue() > maxCom) {
+            maxCom = entry.getValue();
+            biggestCom = entry.getKey();
+          }
+        }
+        if (biggestCom == null) {
           break;
         }
-        other.removeResource(biggest, 1, ref.getBank());
-        player.addResource(biggest, 1, ref.getBank());
+        other.removeCommodity(biggestCom, 1);
+        player.addCommodity(biggestCom, 1);
         received++;
+        commoditiesTaken++;
       }
     }
-    return received > 0
-        ? String.format("You played Wedding and received %d resource card(s).",
-            received)
-        : "You played Wedding but no player has more victory points than you.";
+    if (received == 0) {
+      return "You played Wedding but no player has more victory points than you.";
+    }
+    if (commoditiesTaken == 0) {
+      return String.format(
+          "You played Wedding and received %d resource card(s).",
+          resourcesTaken);
+    }
+    if (resourcesTaken == 0) {
+      return String.format(
+          "You played Wedding and received %d commodity card(s).",
+          commoditiesTaken);
+    }
+    return String.format(
+        "You played Wedding and received %d card(s) (%d resource, %d commodity).",
+        received, resourcesTaken, commoditiesTaken);
   }),
 
   BISHOP(CityImprovement.POLITICS, "Bishop", (ref, player, target) -> {
