@@ -22,10 +22,11 @@ public class ProgressDeckDrawTest {
   @Test
   public void citiesAndKnightsGameDrawsFromTrackDecks() {
     Referee ref = citiesAndKnightsReferee();
-    // The Science deck holds Printer, Irrigation, Engineer, Inventor,
-    // Alchemist, Crane, Medicine, Mining, Smith, and Road Building.
+    // The Science deck holds 2 copies each of Printer, Irrigation,
+    // Engineer, Inventor, Alchemist, Crane, Medicine, Mining, Smith, and
+    // Road Building (20 cards total).
     Set<ProgressCardType> drawnScience = new HashSet<>();
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 20; i++) {
       drawnScience.add(ref.drawProgressCard(CityImprovement.SCIENCE));
     }
     assertEquals(EnumSet.of(ProgressCardType.PRINTER,
@@ -36,10 +37,11 @@ public class ProgressDeckDrawTest {
         ProgressCardType.ROAD_BUILDING),
         drawnScience);
     assertNull(ref.drawProgressCard(CityImprovement.SCIENCE));
-    // The Politics deck holds Constitution, Intrigue, Wedding, Bishop,
-    // Diplomat, Deserter, Saboteur, Spy, and Warlord.
+    // The Politics deck holds 2 copies each of Constitution, Intrigue,
+    // Wedding, Bishop, Diplomat, Deserter, Saboteur, Spy, and Warlord (18
+    // cards total).
     Set<ProgressCardType> drawnPolitics = new HashSet<>();
-    for (int i = 0; i < 9; i++) {
+    for (int i = 0; i < 18; i++) {
       drawnPolitics.add(ref.drawProgressCard(CityImprovement.POLITICS));
     }
     assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
@@ -48,10 +50,11 @@ public class ProgressDeckDrawTest {
         ProgressCardType.DESERTER, ProgressCardType.SABOTEUR,
         ProgressCardType.SPY, ProgressCardType.WARLORD), drawnPolitics);
     assertNull(ref.drawProgressCard(CityImprovement.POLITICS));
-    // Trade deck holds Master Merchant, Resource Monopoly, Trade Monopoly,
-    // Merchant Fleet, and Merchant.
+    // The Trade deck holds 2 copies each of Master Merchant, Resource
+    // Monopoly, Trade Monopoly, Merchant Fleet, and Merchant (10 cards
+    // total).
     Set<ProgressCardType> drawnTrade = new HashSet<>();
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 10; i++) {
       drawnTrade.add(ref.drawProgressCard(CityImprovement.TRADE));
     }
     assertEquals(EnumSet.of(ProgressCardType.MASTER_MERCHANT,
