@@ -115,6 +115,24 @@ setInterval(function() {
 }, 1000);
 
 //////////////////////////////////////////
+// Cities & Knights
+//////////////////////////////////////////
+
+// Feature gate: true only in Cities & Knights games. All C&K UI keys off this
+// so base games render unchanged.
+function isCitiesAndKnights() {
+	return !!(gameSettings && gameSettings.isCitiesAndKnights);
+}
+
+// Central fan-out for Cities & Knights UI. Called from handleGetGameState on
+// every state update; shows/hides everything tagged `.ck-only`. Future C&K
+// epics (commodities, knights, barbarian track, progress cards) add their
+// per-feature rendering here.
+function updateCitiesAndKnightsUI() {
+	$(".ck-only").css("display", isCitiesAndKnights() ? "" : "none");
+}
+
+//////////////////////////////////////////
 // Build Tab
 //////////////////////////////////////////
 
@@ -122,7 +140,12 @@ var BUILD_MODE = {
 	NONE: 0,
 	SETTLEMENT: 1,
 	CITY: 2,
-	ROAD: 3
+	ROAD: 3,
+	CITY_WALL: 4,
+	KNIGHT_BUILD: 5,
+	KNIGHT_ACTIVATE: 6,
+	KNIGHT_UPGRADE: 7,
+	KNIGHT_MOVE: 8
 }
 var currentMode = BUILD_MODE.NONE;
 
@@ -217,6 +240,209 @@ function exitCityMode() {
 	}
 }
 
+// Enter build city-wall mode (Cities & Knights).
+function enterCityWallMode() {
+	exitBuildMode();
+	currentMode = BUILD_MODE.CITY_WALL;
+
+	var btnElement = $("#city-wall-build-btn");
+	btnElement.off("click", enterCityWallMode);
+	btnElement.click(exitCityWallMode);
+
+	btnElement.removeClass("btn-default");
+	btnElement.addClass("btn-danger");
+	btnElement.val("Cancel Build");
+
+	// Highlight your own cities that don't already have a wall.
+	for (var i = 0; i < board.intersections.length; i++) {
+		var intersect = board.intersections[i];
+		if (intersect.building === BUILDING.CITY
+				&& intersect.player.id === playerId && !intersect.hasWall) {
+			board.intersections[i].highlight();
+		}
+	}
+}
+
+// Exit build city-wall mode.
+function exitCityWallMode() {
+	currentMode = BUILD_MODE.NONE;
+
+	var btnElement = $("#city-wall-build-btn");
+	btnElement.off("click", exitCityWallMode);
+	btnElement.click(enterCityWallMode);
+
+	btnElement.removeClass("btn-danger");
+	btnElement.addClass("btn-default");
+	btnElement.val("Build City Wall");
+
+	for (var i = 0; i < board.intersections.length; i++) {
+		if (board.intersections[i].highlighted) {
+			board.intersections[i].unHighlight();
+		}
+	}
+}
+
+// Cities & Knights knight build-modes. Each shares the same shape: toggle a
+// button label, highlight intersections matching a predicate, and on click
+// send the matching action for that intersection (dispatched by currentMode in
+// createIntersectionClickHandler).
+var KNIGHT_MODES = {
+	build: {
+		mode: BUILD_MODE.KNIGHT_BUILD,
+		btn: "knight-build-btn",
+		label: "Build Knight",
+		predicate: function(x) { return x.canBuildKnight; }
+	},
+	activate: {
+		mode: BUILD_MODE.KNIGHT_ACTIVATE,
+		btn: "knight-activate-btn",
+		label: "Activate Knight",
+		predicate: function(x) {
+			return x.knight && x.knight.player === playerId && !x.knight.active;
+		}
+	},
+	upgrade: {
+		mode: BUILD_MODE.KNIGHT_UPGRADE,
+		btn: "knight-upgrade-btn",
+		label: "Upgrade Knight",
+		predicate: function(x) {
+			return x.knight && x.knight.player === playerId && x.knight.tier < 3;
+		}
+	}
+};
+
+function enterKnightMode(key) {
+	exitBuildMode();
+	var m = KNIGHT_MODES[key];
+	currentMode = m.mode;
+
+	var btn = $("#" + m.btn);
+	btn.off("click");
+	btn.click(function() { exitKnightMode(key); });
+	btn.removeClass("btn-default").addClass("btn-danger").val("Cancel Build");
+
+	for (var i = 0; i < board.intersections.length; i++) {
+		if (m.predicate(board.intersections[i])) {
+			board.intersections[i].highlight();
+		}
+	}
+}
+
+function exitKnightMode(key) {
+	var m = KNIGHT_MODES[key];
+	currentMode = BUILD_MODE.NONE;
+
+	var btn = $("#" + m.btn);
+	btn.off("click");
+	btn.click(function() { enterKnightMode(key); });
+	btn.removeClass("btn-danger").addClass("btn-default").val(m.label);
+
+	for (var i = 0; i < board.intersections.length; i++) {
+		if (board.intersections[i].highlighted) {
+			board.intersections[i].unHighlight();
+		}
+	}
+}
+
+// --- Cities & Knights: move an active knight (two-step interaction) ---
+// Step 1: highlight your active knights; click one to select it as the source.
+// Step 2: highlight adjacent empty intersections reachable along your own road;
+// click one to move there.
+var knightMoveFrom = null;
+
+// Order-independent key for an intersection's three surrounding tile coords.
+function tileCoordKey(coords) {
+	return [coords.coord1, coords.coord2, coords.coord3].map(function(c) {
+		return c.x + "," + c.y + "," + c.z;
+	}).sort().join("|");
+}
+
+// Empty intersections one road-hop from `from` along this player's own roads.
+function legalKnightMoveTargets(from) {
+	var byKey = {};
+	for (var i = 0; i < board.intersections.length; i++) {
+		var x = board.intersections[i];
+		byKey[tileCoordKey(x.intersectCoordinates)] = x;
+	}
+	var fromKey = tileCoordKey(from.intersectCoordinates);
+	var targets = [];
+	for (var i = 0; i < board.paths.length; i++) {
+		var p = board.paths[i];
+		if (!p.containsRoad || !p.player || p.player.id !== playerId) {
+			continue;
+		}
+		var startKey = tileCoordKey(p.originalStart);
+		var endKey = tileCoordKey(p.originalEnd);
+		var otherKey = (startKey === fromKey) ? endKey
+				: (endKey === fromKey) ? startKey : null;
+		if (otherKey === null) {
+			continue;
+		}
+		var dest = byKey[otherKey];
+		if (dest && dest.building === BUILDING.NONE && !dest.knight) {
+			targets.push(dest);
+		}
+	}
+	return targets;
+}
+
+function highlightActiveKnights() {
+	knightMoveFrom = null;
+	for (var i = 0; i < board.intersections.length; i++) {
+		var x = board.intersections[i];
+		if (x.knight && x.knight.player === playerId && x.knight.active) {
+			x.highlight();
+		}
+	}
+}
+
+// Step 1 -> 2: called when an active knight is clicked in move mode.
+function selectKnightMoveSource(intersect) {
+	for (var i = 0; i < board.intersections.length; i++) {
+		if (board.intersections[i].highlighted) {
+			board.intersections[i].unHighlight();
+		}
+	}
+	var targets = legalKnightMoveTargets(intersect);
+	if (targets.length === 0) {
+		addMessage("That knight has nowhere to move.");
+		highlightActiveKnights();
+		return;
+	}
+	knightMoveFrom = intersect;
+	for (var i = 0; i < targets.length; i++) {
+		targets[i].highlight();
+	}
+}
+
+function enterKnightMoveMode() {
+	exitBuildMode();
+	currentMode = BUILD_MODE.KNIGHT_MOVE;
+
+	var btn = $("#knight-move-btn");
+	btn.off("click");
+	btn.click(exitKnightMoveMode);
+	btn.removeClass("btn-default").addClass("btn-danger").val("Cancel Move");
+
+	highlightActiveKnights();
+}
+
+function exitKnightMoveMode() {
+	currentMode = BUILD_MODE.NONE;
+	knightMoveFrom = null;
+
+	var btn = $("#knight-move-btn");
+	btn.off("click");
+	btn.click(enterKnightMoveMode);
+	btn.removeClass("btn-danger").addClass("btn-default").val("Move Knight");
+
+	for (var i = 0; i < board.intersections.length; i++) {
+		if (board.intersections[i].highlighted) {
+			board.intersections[i].unHighlight();
+		}
+	}
+}
+
 // Highlight all paths that roads can be built on.
 function highlightRoads() {
 	for (var i = 0; i < board.paths.length; i++) {
@@ -278,6 +504,21 @@ function exitBuildMode() {
 		case BUILD_MODE.ROAD:
 			exitRoadMode();
 			break;
+		case BUILD_MODE.CITY_WALL:
+			exitCityWallMode();
+			break;
+		case BUILD_MODE.KNIGHT_BUILD:
+			exitKnightMode("build");
+			break;
+		case BUILD_MODE.KNIGHT_ACTIVATE:
+			exitKnightMode("activate");
+			break;
+		case BUILD_MODE.KNIGHT_UPGRADE:
+			exitKnightMode("upgrade");
+			break;
+		case BUILD_MODE.KNIGHT_MOVE:
+			exitKnightMoveMode();
+			break;
 		default:
 			break;
 	}
@@ -287,6 +528,11 @@ function exitBuildMode() {
 $("#settlement-build-btn").click(enterSettlementMode);
 $("#city-build-btn").click(enterCityMode);
 $("#road-build-btn").click(enterRoadMode);
+$("#city-wall-build-btn").click(enterCityWallMode);
+$("#knight-build-btn").click(function() { enterKnightMode("build"); });
+$("#knight-activate-btn").click(function() { enterKnightMode("activate"); });
+$("#knight-upgrade-btn").click(function() { enterKnightMode("upgrade"); });
+$("#knight-move-btn").click(enterKnightMoveMode);
 
 // Exit build mode on the following actions
 $("#players-tab-toggle").click(exitBuildMode);

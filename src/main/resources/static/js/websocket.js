@@ -1,15 +1,10 @@
 // ---------- Setup ---------- //
 
 //Establish the WebSocket connection and set up event handlers
-if (document.location.hostname == "localhost") {
-        // use http
-        webSocket = new WebSocket("ws://" + location.hostname + ":" + location.port
-                        + "/action/");
-} else {
-        // we're on heroku - use https:
-        webSocket = new WebSocket("wss://" + location.hostname + ":" + location.port
-                + "/action/");
-}
+// Match the page's protocol: wss:// when served over https (e.g. Heroku),
+// ws:// otherwise (localhost and LAN hosting over plain http).
+var wsProtocol = location.protocol == "https:" ? "wss://" : "ws://";
+webSocket = new WebSocket(wsProtocol + location.host + "/action/");
 
 // Send a heartbeat on the websocket
 function heartbeat() {
@@ -113,6 +108,52 @@ function sendBuildCityAction(intersectCoordinates) {
 	var buildReq = {
 		requestType : "action",
 		action : "buildCity",
+		coordinate : intersectCoordinates
+	};
+	webSocket.send(JSON.stringify(buildReq));
+}
+
+// Cities & Knights: build / activate / upgrade a knight at an intersection.
+function sendBuildKnightAction(intersectCoordinates) {
+	webSocket.send(JSON.stringify({
+		requestType : "action",
+		action : "buildKnight",
+		coordinate : intersectCoordinates
+	}));
+}
+
+function sendActivateKnightAction(intersectCoordinates) {
+	webSocket.send(JSON.stringify({
+		requestType : "action",
+		action : "activateKnight",
+		coordinate : intersectCoordinates
+	}));
+}
+
+function sendUpgradeKnightAction(intersectCoordinates) {
+	webSocket.send(JSON.stringify({
+		requestType : "action",
+		action : "upgradeKnight",
+		coordinate : intersectCoordinates
+	}));
+}
+
+// Cities & Knights: move an active knight from one intersection to an adjacent
+// empty one along your own road.
+function sendMoveKnightAction(from, to) {
+	webSocket.send(JSON.stringify({
+		requestType : "action",
+		action : "moveKnight",
+		from : from,
+		to : to
+	}));
+}
+
+// Cities & Knights: build a wall on one of your own cities.
+function sendBuildCityWallAction(intersectCoordinates) {
+	var buildReq = {
+		requestType : "action",
+		action : "buildCityWall",
 		coordinate : intersectCoordinates
 	};
 	webSocket.send(JSON.stringify(buildReq));
@@ -544,6 +585,9 @@ function handleGetGameState(gameStateData) {
 
 	// Build current extras tab
 	buildExtrasTab();
+
+	// Show/hide and render Cities & Knights UI
+	updateCitiesAndKnightsUI();
 
 	// Create board
 	board = new Board();

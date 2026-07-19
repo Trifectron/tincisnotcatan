@@ -12,6 +12,20 @@ Then run the application with,
 
 Once running, the application will be available at `localhost:4567`.
 
+### Hosting a game on your LAN
+Run the container with host networking so it can advertise your real LAN
+address:
+
+`docker run --rm --name catan -d --network host catan`
+
+On startup the server prints a `http://<your-lan-ip>:4567/home` URL. Anyone on
+the same network can open that URL to see your open rooms and create or join a
+game. No cloud/Heroku deploy required.
+
+(With published-port mode `-p 4567:4567` instead of `--network host`, the game
+still works, but the printed URL is the container's internal address — peers
+should use the host machine's own LAN IP with port 4567.)
+
 ## Deployment
 The latest code on `master` automatically deployed to our staging site: `http://stormy-mesa-37166.herokuapp.com/home`.
 
