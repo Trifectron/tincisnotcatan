@@ -162,9 +162,10 @@ public interface Player {
   void freeAdvanceImprovement(CityImprovement improvement);
 
   /**
-   * The player's held Cities & Knights progress cards (may contain
+   * The player's held Cities &amp; Knights progress cards (may contain
    * duplicates). Empty for base-game players.
    *
+   * @return An unmodifiable list of the player's progress cards.
    */
   List<ProgressCardType> getProgressCards();
 
