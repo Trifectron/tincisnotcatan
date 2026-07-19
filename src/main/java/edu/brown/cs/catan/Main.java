@@ -70,10 +70,30 @@ public class Main {
     // secure("", "", "", ""); // use this for https!
 
     Spark.init();
+    printLanUrl();
   }
 
 
   private void run() {}
+
+
+  // Print the LAN address others on the network use to join this host.
+  private static void printLanUrl() {
+    int port = getHerokuAssignedPort();
+    String host = "localhost";
+    // Open a UDP socket to a public address to discover which local interface
+    // routes outbound traffic; no packet is actually sent.
+    try (java.net.DatagramSocket socket = new java.net.DatagramSocket()) {
+      socket.connect(java.net.InetAddress.getByName("8.8.8.8"), 10002);
+      host = socket.getLocalAddress().getHostAddress();
+    } catch (Exception e) {
+      // Fall back to localhost if the LAN address can't be determined.
+    }
+    System.out.println("======================================================");
+    System.out.println("  Catan is running. Others on your network can join:");
+    System.out.println("    http://" + host + ":" + port + "/home");
+    System.out.println("======================================================");
+  }
 
 
   // used for heroku hosting - environment variables are set by heroku.

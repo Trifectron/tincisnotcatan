@@ -1,15 +1,10 @@
 // ---------- Setup ---------- //
 
 //Establish the WebSocket connection and set up event handlers
-if (document.location.hostname == "localhost") {
-        // use http
-        webSocket = new WebSocket("ws://" + location.hostname + ":" + location.port
-                        + "/action/");
-} else {
-        // we're on heroku - use https:
-        webSocket = new WebSocket("wss://" + location.hostname + ":" + location.port
-                + "/action/");
-}
+// Match the page's protocol: wss:// when served over https (e.g. Heroku),
+// ws:// otherwise (localhost and LAN hosting over plain http).
+var wsProtocol = location.protocol == "https:" ? "wss://" : "ws://";
+webSocket = new WebSocket(wsProtocol + location.host + "/action/");
 
 // Send a heartbeat on the websocket
 function heartbeat() {
