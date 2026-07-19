@@ -13,11 +13,12 @@ import edu.brown.cs.catan.Referee;
 import edu.brown.cs.catan.Referee.GameStatus;
 
 /**
- * Action that moves an active knight to an adjacent empty intersection along one
- * of the player's roads (Cities &amp; Knights).
- *
- * ponytail: does not yet support displacing a weaker enemy knight; only moves
- * to empty intersections. Add displacement when the rule is needed.
+ * Action that moves an active knight along one of the player's roads (Cities
+ * & Knights). The destination may be either empty or held by a strictly
+ * weaker opposing knight; in the latter case the weaker knight is displaced
+ * to an open intersection reachable via its own owner's roads, or removed
+ * from the board entirely if no such intersection exists. All successful
+ * moves turn the moving knight to its inactive side.
  *
  */
 public class MoveKnight implements Action {
@@ -64,7 +65,7 @@ public class MoveKnight implements Action {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
           "Only an active knight can move.", null));
     }
-    if (_to.getBuilding() != null || _to.hasKnight()) {
+    if (_to.getBuilding() != null) {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
           "A knight can only move to an empty intersection.", null));
     }
@@ -73,11 +74,40 @@ public class MoveKnight implements Action {
           "A knight can only move along your own road.", null));
     }
 
+    Knight displaced = null;
+    if (_to.hasKnight()) {
+      // A weaker opponent's knight already on the destination is bumped to
+      // a relocation spot reached via its own owner's roads; if no such
+      // spot exists it is removed from the board entirely.
+      displaced = _to.getKnight();
+      if (displaced.getPlayer().equals(_player)) {
+        return ImmutableMap.of(_player.getID(), new ActionResponse(false,
+            "You cannot displace one of your own knights.", null));
+      }
+      if (displaced.getTier() >= knight.getTier()) {
+        return ImmutableMap.of(_player.getID(), new ActionResponse(false,
+            "You can only displace a strictly weaker knight.", null));
+      }
+      Intersection relocation = findRelocation(displaced.getPlayer());
+      if (relocation != null) {
+        relocation.setKnight(displaced);
+      }
+      // else: the displaced knight falls off the board.
+    }
+
     // The Action:
     _to.setKnight(knight);
     _from.removeKnight();
+    knight.deactivate();
 
-    return KnightActions.broadcast(_ref, _player, "You moved a knight.",
+    String message;
+    if (displaced != null) {
+      message = String.format("You displaced %s's tier-%d knight.",
+          displaced.getPlayer().getName(), displaced.getTier());
+    } else {
+      message = "You moved a knight.";
+    }
+    return KnightActions.broadcast(_ref, _player, message,
         String.format("%s moved a knight.", _player.getName()));
   }
 
@@ -90,5 +120,23 @@ public class MoveKnight implements Action {
       }
     }
     return false;
+  }
+
+  // Finds an open intersection adjacent to the destination along a road
+  // belonging to the displaced knight's owner; null if no such spot exists
+  // (in which case the displaced knight is removed from the board).
+  private Intersection findRelocation(Player displacedOwner) {
+    for (Path p : _to.getPaths()) {
+      Intersection adj = p.getOtherEnd(_to);
+      if (adj.hasKnight()) {
+        continue;
+      }
+      if (p.getRoad() == null
+          || p.getRoad().getPlayer().getID() != displacedOwner.getID()) {
+        continue;
+      }
+      return adj;
+    }
+    return null;
   }
 }
