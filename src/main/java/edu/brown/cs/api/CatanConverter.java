@@ -78,6 +78,7 @@ public class CatanConverter {
     private GameStatsRaw stats;
     private Integer barbarianPosition;
     private Map<CityImprovement, Integer> metropolisOwners;
+    private Resource merchantFleetResource;
 
     public GameState(Referee ref, int playerID) {
       this.playerID = playerID;
@@ -101,6 +102,7 @@ public class CatanConverter {
         for (CityImprovement track : CityImprovement.values()) {
           metropolisOwners.put(track, ref.getMetropolisOwner(track));
         }
+        this.merchantFleetResource = ref.getTurn().getMerchantFleetResource();
       }
       for (Player p : ref.getPlayers()) {
         players.add(new PublicPlayerRaw(p, ref.getReadOnlyReferee()));
