@@ -32,14 +32,21 @@ function Intersection(coord1, coord2, coord3) {
 	this.building = BUILDING.NONE;
 	this.player;
 
+	// Cities & Knights: whether this city has a wall.
+	this.hasWall = false;
+
+	// Cities & Knights: whether this player may place a new knight here.
+	this.canBuildKnight = false;
+
 	// Cities & Knights knight occupying this intersection: {player, tier, active}
 	this.knight = null;
 
 	this.port = PORT.NONE;
-	
+
 	this.highlighted = false;
 	this.canBuildSettlement;
-	
+
+	$("#board-viewport").append("<div class='intersection-wall' id='" + this.id + "-wall'></div>");
 	$("#board-viewport").append("<div class='intersection-select circle' id='" + this.id + "-select'></div>");
 	$("#board-viewport").append("<div class='intersection' id='" + this.id  + "'></div>");
 }
@@ -101,6 +108,19 @@ Intersection.prototype.draw = function(transX, transY, scale) {
 		break;
 	}
 	
+	// Render a Cities & Knights city wall behind the city, if present.
+	var wall = $("#" + this.id + "-wall");
+	wall.empty();
+	if (this.building === BUILDING.CITY && this.hasWall) {
+		var wSize = scale * CITY_SCALE * 1.9;
+		var wx = transX + displacement.x * scale + Math.sqrt(3) * scale / 4 - wSize / 4;
+		var wy = transY + displacement.y * scale + scale / 4 - wSize / 2;
+		wall.append("<img src='images/city-wall.png' style='width:100%;height:100%;'>");
+		wall.css("transform", "translate(" + wx + "px, " + wy + "px)");
+		wall.css("height", wSize);
+		wall.css("width", wSize);
+	}
+
 	// Render a Cities & Knights knight, if one occupies this intersection.
 	// Knights and buildings never share an intersection, so we reuse the same
 	// element the building would use.
@@ -170,6 +190,52 @@ Intersection.prototype.addCity = function(player) {
 Intersection.prototype.createIntersectionClickHandler = function() {
 	var that = this;
 	return function(event) {
+		if (currentMode === BUILD_MODE.CITY_WALL) {
+			if (that.building === BUILDING.CITY && that.player
+					&& that.player.id === playerId && !that.hasWall) {
+				sendBuildCityWallAction(that.intersectCoordinates);
+				exitBuildMode();
+			}
+			return;
+		}
+		if (currentMode === BUILD_MODE.KNIGHT_BUILD) {
+			if (that.canBuildKnight) {
+				sendBuildKnightAction(that.intersectCoordinates);
+				exitBuildMode();
+			}
+			return;
+		}
+		if (currentMode === BUILD_MODE.KNIGHT_ACTIVATE) {
+			if (that.knight && that.knight.player === playerId
+					&& !that.knight.active) {
+				sendActivateKnightAction(that.intersectCoordinates);
+				exitBuildMode();
+			}
+			return;
+		}
+		if (currentMode === BUILD_MODE.KNIGHT_UPGRADE) {
+			if (that.knight && that.knight.player === playerId
+					&& that.knight.tier < 3) {
+				sendUpgradeKnightAction(that.intersectCoordinates);
+				exitBuildMode();
+			}
+			return;
+		}
+		if (currentMode === BUILD_MODE.KNIGHT_MOVE) {
+			if (!knightMoveFrom) {
+				// Step 1: pick one of your active knights as the source.
+				if (that.knight && that.knight.player === playerId
+						&& that.knight.active) {
+					selectKnightMoveSource(that);
+				}
+			} else if (that !== knightMoveFrom && that.highlighted) {
+				// Step 2: pick a highlighted destination.
+				sendMoveKnightAction(knightMoveFrom.intersectCoordinates,
+						that.intersectCoordinates);
+				exitBuildMode();
+			}
+			return;
+		}
 		if (that.building === BUILDING.NONE) {
 			if (inPlaceSettlementMode) {
 				sendPlaceSettlementAction(that.intersectCoordinates);
@@ -230,6 +296,7 @@ function parseIntersection(data) {
 			intersect.addSettlement(player);
 		} else if (data.building.type === "city") {
 			intersect.addCity(player);
+			intersect.hasWall = !!data.building.hasWall;
 		}
 	}
 
@@ -263,6 +330,7 @@ function parseIntersection(data) {
 	}
 
 	intersect.canBuildSettlement = data.canBuildSettlement;
+	intersect.canBuildKnight = !!data.canBuildKnight;
 
 	return intersect;
 }

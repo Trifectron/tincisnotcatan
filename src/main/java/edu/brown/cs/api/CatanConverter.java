@@ -33,6 +33,7 @@ import edu.brown.cs.catan.ProgressCardType;
 import edu.brown.cs.catan.Referee;
 import edu.brown.cs.catan.Referee.GameStatus;
 import edu.brown.cs.catan.Resource;
+import edu.brown.cs.catan.Settings;
 
 public class CatanConverter {
 
@@ -137,6 +138,11 @@ public class CatanConverter {
     private boolean canBuildSettlement;
     private boolean canBuildCity;
     private boolean canBuyDevCard;
+    // Cities & Knights affordability flags. Owning an eligible city/knight is
+    // validated server-side and by build-mode highlighting.
+    private boolean canBuildCityWall;
+    private boolean canAffordKnight;
+    private boolean canAffordActivateKnight;
 
     public Hand(Player player) {
       resources = player.getResources();
@@ -148,6 +154,20 @@ public class CatanConverter {
       canBuildSettlement = player.canBuildSettlement();
       canBuildCity = player.canBuildCity();
       canBuyDevCard = player.canBuyDevelopmentCard();
+      canBuildCityWall = canAfford(resources, Settings.CITY_WALL_COST);
+      canAffordKnight = canAfford(resources, Settings.KNIGHT_COST);
+      canAffordActivateKnight =
+          canAfford(resources, Settings.ACTIVATE_KNIGHT_COST);
+    }
+
+    private static boolean canAfford(Map<Resource, Double> resources,
+        Map<Resource, Double> cost) {
+      for (Map.Entry<Resource, Double> e : cost.entrySet()) {
+        if (resources.getOrDefault(e.getKey(), 0.0) < e.getValue()) {
+          return false;
+        }
+      }
+      return true;
     }
   }
 
@@ -234,6 +254,8 @@ public class CatanConverter {
     private final Port port;
     private final IntersectionCoordinate coordinate;
     private final boolean canBuildSettlement;
+    // Cities & Knights: whether this player may place a new knight here.
+    private final boolean canBuildKnight;
 
     IntersectionRaw(Intersection i, Referee ref, int playerID) {
       building = i.getBuilding() != null ? new BuildingRaw(i.getBuilding())
@@ -242,6 +264,8 @@ public class CatanConverter {
       port = i.getPort();
       coordinate = i.getPosition();
       canBuildSettlement = i.canPlaceSettlement(ref, playerID);
+      canBuildKnight = ref.getGameSettings().isCitiesAndKnights
+          && i.canPlaceKnight(playerID);
     }
 
   }

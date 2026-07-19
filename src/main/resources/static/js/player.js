@@ -176,6 +176,16 @@ function fillPlayerHand(handData) {
 	$("#sheep-number").text(formatNumber(handData.resources.sheep));
 	player.hand.sheep = handData.resources.sheep;
 
+	// Cities & Knights commodities (map omits zero entries, so default to 0)
+	if (handData.commodities) {
+		player.hand.paper = handData.commodities.paper || 0;
+		player.hand.cloth = handData.commodities.cloth || 0;
+		player.hand.coin = handData.commodities.coin || 0;
+		$("#paper-number").text(formatNumber(player.hand.paper));
+		$("#cloth-number").text(formatNumber(player.hand.cloth));
+		$("#coin-number").text(formatNumber(player.hand.coin));
+	}
+
 	// Add dev cards to this player's hand
 	$("#knight-number").text(handData.devCards["Knight"]);
 	player.hand.knight = handData.devCards["Knight"];
@@ -221,6 +231,13 @@ function fillPlayerBuyOptions(handData) {
 	} else {
 		$("#buy-dev-card-modal-open").prop("disabled", true);
 	}
+
+	// Cities & Knights: city wall + knights (affordability; owning an eligible
+	// city/knight is enforced by build-mode highlighting and server validation).
+	$("#city-wall-build-btn").prop("disabled", !handData.canBuildCityWall);
+	$("#knight-build-btn").prop("disabled", !handData.canAffordKnight);
+	$("#knight-upgrade-btn").prop("disabled", !handData.canAffordKnight);
+	$("#knight-activate-btn").prop("disabled", !handData.canAffordActivateKnight);
 }
 
 /*

@@ -75,7 +75,54 @@
 							</div>
 						</div>
 		    		</li>
-		    		<li class="list-group-item">
+		    		<li class="list-group-item ck-only" id="knight-build-item" style="display:none">
+			    	<input type="button" class="btn btn-default build-btn" id="knight-build-btn" value="Build Knight">
+				    	<br>
+				    	<span>1</span>
+				    	<div class="circle build-circle ore-color">
+							<img src="images/icon-ore.svg" alt="Ore">
+						</div>
+						<br>
+				    	<span>1</span>
+				    	<div class="circle build-circle sheep-color">
+							<img src="images/icon-sheep.svg" alt="Sheep">
+						</div>
+	    		</li>
+	    		<li class="list-group-item ck-only" id="knight-activate-item" style="display:none">
+			    	<input type="button" class="btn btn-default build-btn" id="knight-activate-btn" value="Activate Knight">
+				    	<br>
+				    	<span>1</span>
+				    	<div class="circle build-circle wheat-color">
+							<img src="images/icon-wheat.svg" alt="Wheat">
+						</div>
+	    		</li>
+	    		<li class="list-group-item ck-only" id="knight-upgrade-item" style="display:none">
+			    	<input type="button" class="btn btn-default build-btn" id="knight-upgrade-btn" value="Upgrade Knight">
+				    	<br>
+				    	<span>1</span>
+				    	<div class="circle build-circle ore-color">
+							<img src="images/icon-ore.svg" alt="Ore">
+						</div>
+						<br>
+				    	<span>1</span>
+				    	<div class="circle build-circle sheep-color">
+							<img src="images/icon-sheep.svg" alt="Sheep">
+						</div>
+	    		</li>
+	    		<li class="list-group-item ck-only" id="knight-move-item" style="display:none">
+			    	<input type="button" class="btn btn-default build-btn" id="knight-move-btn" value="Move Knight">
+				    	<br>
+				    	<span class="build-circle-list-number">Move an active knight along your roads (free).</span>
+	    		</li>
+	    		<li class="list-group-item ck-only" id="city-wall-build-item" style="display:none">
+			    	<input type="button" class="btn btn-default build-btn" id="city-wall-build-btn" value="Build City Wall">
+				    	<br>
+				    	<span>2</span>
+				    	<div class="circle build-circle brick-color">
+							<img src="images/icon-brick.svg" alt="Brick">
+						</div>
+	    		</li>
+	    		<li class="list-group-item">
 				    	<input type="button" class="btn btn-default build-btn" id="road-build-btn" value="Build Road">
 				    	</br>
 				    	<span>1</span>
@@ -362,6 +409,26 @@
 						<img src="images/icon-sheep.svg" alt="Sheep">
 					</div>
 					<div class="card-number" id="sheep-number">0</div>
+				</li>
+			</ul>
+			<ul class="nav navbar-nav navbar-left ck-only" id="hand-commodities" style="display:none">
+				<li class="navbar-btn">
+					<div class="circle card-circle paper-color" data-toggle="tooltip" data-placement="top" title="Paper">
+						<img src="images/icon-commodity-paper.svg" alt="Paper">
+					</div>
+					<div class="card-number" id="paper-number">0</div>
+				</li>
+				<li class="navbar-btn">
+					<div class="circle card-circle cloth-color" data-toggle="tooltip" data-placement="top" title="Cloth">
+						<img src="images/icon-commodity-cloth.svg" alt="Cloth">
+					</div>
+					<div class="card-number" id="cloth-number">0</div>
+				</li>
+				<li class="navbar-btn">
+					<div class="circle card-circle coin-color" data-toggle="tooltip" data-placement="top" title="Coin">
+						<img src="images/icon-commodity-coin.svg" alt="Coin">
+					</div>
+					<div class="card-number" id="coin-number">0</div>
 				</li>
 			</ul>
 			<ul class="nav navbar-nav navbar-right" id="hand-dev-cards">

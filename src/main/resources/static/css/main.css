@@ -391,6 +391,16 @@ body {
 .wheat-color {
 	background-color: #EAC932
 }
+/* Cities & Knights commodities */
+.paper-color {
+	background-color: #D9CBA3;
+}
+.cloth-color {
+	background-color: #4A9B6E;
+}
+.coin-color {
+	background-color: #D4AF37;
+}
 
 .ore-color {
 	background-color: #A1AFDA;
@@ -551,6 +561,13 @@ body {
 	background-color: transparent;
 	position: absolute;
 	z-index: 7;
+}
+
+/* Cities & Knights city wall — drawn behind the city icon. */
+.intersection-wall {
+	position: absolute;
+	z-index: 3;
+	pointer-events: none;
 }
 
 .path {
