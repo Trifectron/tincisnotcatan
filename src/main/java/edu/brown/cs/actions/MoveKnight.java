@@ -122,13 +122,14 @@ public class MoveKnight implements Action {
     return false;
   }
 
-  // Finds an open intersection adjacent to the destination along a road
-  // belonging to the displaced knight's owner; null if no such spot exists
-  // (in which case the displaced knight is removed from the board).
+  // Finds an open intersection (no building, no knight) adjacent to the
+  // destination along a road belonging to the displaced knight's owner;
+  // null if no such spot exists (in which case the displaced knight is
+  // removed from the board).
   private Intersection findRelocation(Player displacedOwner) {
     for (Path p : _to.getPaths()) {
       Intersection adj = p.getOtherEnd(_to);
-      if (adj.hasKnight()) {
+      if (adj.getBuilding() != null || adj.hasKnight()) {
         continue;
       }
       if (p.getRoad() == null
