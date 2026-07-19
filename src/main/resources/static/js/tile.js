@@ -18,7 +18,8 @@ var TILE_TYPE = {
 	SEA: 7,
 	// Seafarers expansion tile types:
 	WATER: 8,
-	GOLD: 9
+	GOLD: 9,
+	DESERT_ISLAND: 10
 }
 
 var PORT = {
@@ -359,6 +360,8 @@ function parseTileType(tileType) {
 			return TILE_TYPE.WATER;
 		case "GOLD":
 			return TILE_TYPE.GOLD;
+		case "DESERT_ISLAND":
+			return TILE_TYPE.DESERT_ISLAND;
 		default:
 			return;
 	}

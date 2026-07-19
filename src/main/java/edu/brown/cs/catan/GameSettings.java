@@ -16,6 +16,7 @@ public class GameSettings {
   public final boolean isDynamic;
   public final boolean isStandard;
   public final boolean isSeafarers;
+  public final boolean isCitiesAndKnights;
 
   public GameSettings(JsonObject settings) {
     int numPlayers = Settings.DEFAULT_NUM_PLAYERS;
@@ -56,12 +57,19 @@ public class GameSettings {
     } catch (NullPointerException e) {
       System.out.println("SETTINGS missing isSeafarers parameter");
     }
+    boolean isCitiesAndKnights = false;
+    try {
+      isCitiesAndKnights = settings.get("isCitiesAndKnights").getAsBoolean();
+    } catch (NullPointerException e) {
+      System.out.println("SETTINGS missing isCitiesAndKnights parameter");
+    }
     this.winningPointCount = winningPointCount;
     this.numPlayers = numPlayers;
     this.isDecimal = isDecimal;
     this.isDynamic = isDynamic;
     this.isStandard = isStandard;
     this.isSeafarers = isSeafarers;
+    this.isCitiesAndKnights = isCitiesAndKnights;
   }
 
   // Default Settings
@@ -72,6 +80,7 @@ public class GameSettings {
     this.isDynamic = false;
     this.isStandard = false;
     this.isSeafarers = false;
+    this.isCitiesAndKnights = false;
   }
 
 }

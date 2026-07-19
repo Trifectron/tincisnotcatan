@@ -420,13 +420,13 @@ public class Board {
       Map<IntersectionCoordinate, Intersection> intersections,
       Map<PathCoordinate, Path> paths, Integer currRoll, Integer currTile,
       int[] rollNums) {
-    if (tileType != DESERT) {
+    if (tileType == DESERT) {
+      _tiles.add(new Tile(0, coord, intersections, paths, tileType, true));
+      return currRoll;
+    } else {
       _tiles.add(new Tile(rollNums[currRoll], coord, intersections, paths,
           tileType));
       return currRoll + 1;
-    } else {
-      _tiles.add(new Tile(0, coord, intersections, paths, tileType, true));
-      return currRoll;
     }
   }
 
