@@ -12,6 +12,7 @@ import edu.brown.cs.actions.BuildKnight;
 import edu.brown.cs.actions.BuildRoad;
 import edu.brown.cs.actions.BuildSettlement;
 import edu.brown.cs.actions.BuyDevelopmentCard;
+import edu.brown.cs.actions.ChaseRobber;
 import edu.brown.cs.actions.EmptyAction;
 import edu.brown.cs.actions.EndTurn;
 import edu.brown.cs.actions.FollowUpAction;
@@ -154,6 +155,11 @@ public class ActionFactory {
           return new BuildCityWall(_referee, playerID,
               toIntersectionCoordinate(actionJSON.get("coordinate")
                   .getAsJsonObject()));
+        case ChaseRobber.ID:
+          return new ChaseRobber(_referee, playerID,
+              toIntersectionCoordinate(actionJSON.get("knightAt")
+                  .getAsJsonObject()),
+              toHexCoordinate(actionJSON.get("destination").getAsJsonObject()));
         default:
           String err = String.format("The action %s does not exist.", action);
           throw new IllegalArgumentException(err);
@@ -177,6 +183,11 @@ public class ActionFactory {
     HexCoordinate h3 = new HexCoordinate(coord3.get("x").getAsInt(), coord3
         .get("y").getAsInt(), coord3.get("z").getAsInt());
     return new IntersectionCoordinate(h1, h2, h3);
+  }
+
+  private HexCoordinate toHexCoordinate(JsonObject object) {
+    return new HexCoordinate(object.get("x").getAsInt(),
+        object.get("y").getAsInt(), object.get("z").getAsInt());
   }
 
 }
