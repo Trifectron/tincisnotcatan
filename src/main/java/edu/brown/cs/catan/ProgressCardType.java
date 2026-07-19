@@ -199,6 +199,52 @@ public enum ProgressCardType {
         : "You played Mining but have no settlements or cities on an ore hex.";
   }),
 
+  // Smith's target is two semicolon-separated intersections, each three
+  // pipe-separated tile coordinates, naming two of the player's knights.
+  // Promotes both one tier each for free; the mighty-knight (tier 3)
+  // Politics-3 gate from UpgradeKnight still applies.
+  SMITH(CityImprovement.SCIENCE, "Smith", (ref, player, target) -> {
+    String[] parts = target.split(";");
+    if (parts.length != 2) {
+      return "You played Smith but didn't name two knights.";
+    }
+    Intersection[] spots = new Intersection[2];
+    for (int i = 0; i < 2; i++) {
+      IntersectionCoordinate coord;
+      try {
+        coord = parseIntersectionCoordinate(parts[i]);
+      } catch (Exception e) {
+        return "You played Smith but didn't name a valid intersection.";
+      }
+      spots[i] = ref.getBoard().getIntersections().get(coord);
+    }
+    if (spots[0] == spots[1]) {
+      return "You played Smith but named the same knight twice.";
+    }
+    Knight[] knights = new Knight[2];
+    for (int i = 0; i < 2; i++) {
+      Knight knight = spots[i] == null ? null : spots[i].getKnight();
+      if (knight == null || !knight.getPlayer().equals(player)) {
+        return "You played Smith but named a location with no knight of "
+            + "yours.";
+      }
+      if (!knight.canUpgrade()) {
+        return "You played Smith but one of those knights is already at "
+            + "the highest tier.";
+      }
+      if (knight.getTier() == Settings.MAX_KNIGHT_TIER - 1
+          && player.getImprovementLevel(CityImprovement.POLITICS) < 3) {
+        return "You played Smith but mighty knights require a level-3 "
+            + "Politics city improvement.";
+      }
+      knights[i] = knight;
+    }
+    knights[0].upgrade();
+    knights[1].upgrade();
+    return "You played Smith and promoted two knights one tier each, for "
+        + "free.";
+  }),
+
   // Road Building lets the player place two free roads, just like the
   // base-game development card.
   ROAD_BUILDING(CityImprovement.SCIENCE, "Road Building", (ref, player,

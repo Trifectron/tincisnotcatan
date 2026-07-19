@@ -42,7 +42,7 @@ public class ProgressCardTest {
   @Test
   public void deckHoldsOnlyItsTrackAndDrainsToEmpty() {
     ProgressCardDeck science = new ProgressCardDeck(CityImprovement.SCIENCE);
-    assertEquals(9, science.size());
+    assertEquals(10, science.size());
     Set<ProgressCardType> drawn = new HashSet<>();
     while (!science.isEmpty()) {
       drawn.add(science.draw());
@@ -51,7 +51,8 @@ public class ProgressCardTest {
         ProgressCardType.IRRIGATION, ProgressCardType.ENGINEER,
         ProgressCardType.INVENTOR, ProgressCardType.ALCHEMIST,
         ProgressCardType.CRANE, ProgressCardType.MEDICINE,
-        ProgressCardType.MINING, ProgressCardType.ROAD_BUILDING), drawn);
+        ProgressCardType.MINING, ProgressCardType.SMITH,
+        ProgressCardType.ROAD_BUILDING), drawn);
     assertNull(science.draw());
 
     ProgressCardDeck politics = new ProgressCardDeck(CityImprovement.POLITICS);
@@ -777,5 +778,106 @@ public class ProgressCardTest {
 
     String msg = ProgressCardType.DIPLOMAT.play(ref, pa, pathTarget(path));
     assertTrue(msg.contains("no road"));
+  }
+
+  @Test
+  public void smithPromotesTwoKnightsForFree() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+
+    Intersection[] spots = new Intersection[2];
+    int found = 0;
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      spots[found] = i;
+      i.placeKnight(p);
+      found++;
+      if (found == 2) {
+        break;
+      }
+    }
+
+    String target = intersectionTarget(spots[0].getPosition()) + ";"
+        + intersectionTarget(spots[1].getPosition());
+    String msg = ProgressCardType.SMITH.play(ref, p, target);
+
+    assertEquals(2, spots[0].getKnight().getTier());
+    assertEquals(2, spots[1].getKnight().getTier());
+    assertTrue(msg.contains("promoted"));
+  }
+
+  @Test
+  public void smithRejectsWhenTargetIsNotYourKnight() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+
+    Intersection[] spots = new Intersection[2];
+    int found = 0;
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      spots[found] = i;
+      found++;
+      if (found == 2) {
+        break;
+      }
+    }
+    spots[0].placeKnight(pa);
+    spots[1].placeKnight(pb);
+
+    String target = intersectionTarget(spots[0].getPosition()) + ";"
+        + intersectionTarget(spots[1].getPosition());
+    String msg = ProgressCardType.SMITH.play(ref, pa, target);
+
+    assertEquals(1, spots[0].getKnight().getTier());
+    assertTrue(msg.contains("no knight of yours"));
+  }
+
+  @Test
+  public void smithRejectsTheSameKnightNamedTwice() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+
+    Intersection spot = ref.getBoard().getIntersections().values().iterator()
+        .next();
+    spot.placeKnight(p);
+
+    String single = intersectionTarget(spot.getPosition());
+    String msg = ProgressCardType.SMITH.play(ref, p, single + ";" + single);
+
+    assertEquals(1, spot.getKnight().getTier());
+    assertTrue(msg.contains("same knight twice"));
+  }
+
+  @Test
+  public void smithGatesMightyPromotionOnPoliticsLevelThree() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+
+    Intersection[] spots = new Intersection[2];
+    int found = 0;
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      spots[found] = i;
+      i.placeKnight(p);
+      spots[found].getKnight().upgrade();
+      found++;
+      if (found == 2) {
+        break;
+      }
+    }
+
+    String target = intersectionTarget(spots[0].getPosition()) + ";"
+        + intersectionTarget(spots[1].getPosition());
+    String msg = ProgressCardType.SMITH.play(ref, p, target);
+
+    assertEquals(2, spots[0].getKnight().getTier());
+    assertEquals(2, spots[1].getKnight().getTier());
+    assertTrue(msg.contains("level-3 Politics"));
   }
 }
