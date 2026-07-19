@@ -265,6 +265,7 @@ public class CatanConverter {
     private final int number;
     private final List<IntersectionCoordinate> portLocations;
     private final Resource portType;
+    private final int merchantOwner;
 
     public TileRaw(BoardTile tile) {
       hexCoordinate = tile.getCoordinate();
@@ -273,6 +274,8 @@ public class CatanConverter {
       number = tile.getRollNumber();
       portLocations = tile.getPortLocations();
       portType = tile.getPortType();
+      merchantOwner = tile instanceof Tile ? ((Tile) tile).getMerchantOwner()
+          : -1;
     }
   }
 
