@@ -15,6 +15,14 @@ public class Intersection {
   private Building _building;
   private Port _port;
   private IntersectionCoordinate _position;
+  // Seafarers: whether this intersection touches at least one land tile.
+  // Defaults to true so base-game boards (all-land intersections) are
+  // unaffected; the Seafarers generator clears it for open-sea intersections.
+  private boolean _hasAdjacentLand = true;
+  // Seafarers: whether this intersection belongs to the home island. Defaults
+  // to true (base game). Initial settlements are restricted to the home
+  // island; settlements built on other islands during play earn bonus points.
+  private boolean _isHomeIsland = true;
 
   /**
    * Constructor for the class.
@@ -116,9 +124,10 @@ public class Intersection {
    *         intersection.
    */
   public boolean canPlaceSettlement(Referee r, int playerID) {
-    if (_building == null && !hasAdjacentSettlement()) {
+    if (_building == null && !hasAdjacentSettlement() && _hasAdjacentLand) {
       if (r.getGameStatus() != GameStatus.PROGRESS) {
-        return true;
+        // During setup, initial settlements must be on the home island.
+        return _isHomeIsland;
       } else {
         for (Path p : _paths) {
           if (p.getRoad() != null
@@ -185,6 +194,41 @@ public class Intersection {
    */
   public Building getBuilding() {
     return _building;
+  }
+
+  /**
+   * @return whether this intersection touches at least one land tile (Seafarers).
+   */
+  public boolean hasAdjacentLand() {
+    return _hasAdjacentLand;
+  }
+
+  /**
+   * Sets whether this intersection touches at least one land tile. Used by the
+   * Seafarers board generator to forbid building settlements in open sea.
+   *
+   * @param hasAdjacentLand
+   *          whether an adjacent tile is land.
+   */
+  public void setHasAdjacentLand(boolean hasAdjacentLand) {
+    _hasAdjacentLand = hasAdjacentLand;
+  }
+
+  /**
+   * @return whether this intersection is on the home island (Seafarers).
+   */
+  public boolean isHomeIsland() {
+    return _isHomeIsland;
+  }
+
+  /**
+   * Sets whether this intersection is on the home island (Seafarers).
+   *
+   * @param isHomeIsland
+   *          whether an adjacent tile is a home-island tile.
+   */
+  public void setHomeIsland(boolean isHomeIsland) {
+    _isHomeIsland = isHomeIsland;
   }
 
   @Override

@@ -54,6 +54,17 @@
   							</label>
 						</div>
 						<br>
+						<label>Expansion</label>
+						<br>
+						<div class="btn-group" data-toggle="buttons">
+							<label class="btn btn-default active">
+								<input type="radio" autocomplete="off" checked>Base Game
+							</label>
+							<label class="btn btn-default" id="seafarers-option">
+								<input type="radio" autocomplete="off">Seafarers
+							</label>
+						</div>
+						<br>
 						<label id="decimal-resources-label">Decimal Resource Amounts</label>
 						<br>
 						<div id="decimal-container" class="btn-group" data-toggle="buttons">

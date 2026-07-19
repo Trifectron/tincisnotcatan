@@ -15,6 +15,7 @@ public class GameSettings {
   public final boolean isDecimal;
   public final boolean isDynamic;
   public final boolean isStandard;
+  public final boolean isSeafarers;
 
   public GameSettings(JsonObject settings) {
     int numPlayers = Settings.DEFAULT_NUM_PLAYERS;
@@ -49,11 +50,18 @@ public class GameSettings {
     } catch (NullPointerException e) {
       System.out.println("SETTINGS missing isStandard parameter");
     }
+    boolean isSeafarers = false;
+    try {
+      isSeafarers = settings.get("isSeafarers").getAsBoolean();
+    } catch (NullPointerException e) {
+      System.out.println("SETTINGS missing isSeafarers parameter");
+    }
     this.winningPointCount = winningPointCount;
     this.numPlayers = numPlayers;
     this.isDecimal = isDecimal;
     this.isDynamic = isDynamic;
     this.isStandard = isStandard;
+    this.isSeafarers = isSeafarers;
   }
 
   // Default Settings
@@ -63,6 +71,7 @@ public class GameSettings {
     this.isDecimal = false;
     this.isDynamic = false;
     this.isStandard = false;
+    this.isSeafarers = false;
   }
 
 }

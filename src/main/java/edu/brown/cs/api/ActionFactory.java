@@ -8,6 +8,7 @@ import edu.brown.cs.actions.Action;
 import edu.brown.cs.actions.BuildCity;
 import edu.brown.cs.actions.BuildRoad;
 import edu.brown.cs.actions.BuildSettlement;
+import edu.brown.cs.actions.BuildShip;
 import edu.brown.cs.actions.BuyDevelopmentCard;
 import edu.brown.cs.actions.EmptyAction;
 import edu.brown.cs.actions.EndTurn;
@@ -100,6 +101,12 @@ public class ActionFactory {
           IntersectionCoordinate end = toIntersectionCoordinate(actionJSON.get(
               "end").getAsJsonObject());
           return new BuildRoad(_referee, playerID, start, end, true);
+        case BuildShip.ID:
+          IntersectionCoordinate shipStart = toIntersectionCoordinate(actionJSON
+              .get("start").getAsJsonObject());
+          IntersectionCoordinate shipEnd = toIntersectionCoordinate(actionJSON
+              .get("end").getAsJsonObject());
+          return new BuildShip(_referee, playerID, shipStart, shipEnd, true);
         case BuyDevelopmentCard.ID:
           return new BuyDevelopmentCard(_referee, playerID);
         case PlayMonopoly.ID:

@@ -11,6 +11,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 
 import edu.brown.cs.board.Tile;
+import edu.brown.cs.board.TileType;
 import edu.brown.cs.catan.Player;
 import edu.brown.cs.catan.Referee;
 import edu.brown.cs.catan.Resource;
@@ -65,10 +66,20 @@ public class RollDice implements FollowUpAction {
 
     if (diceRoll != 7) {
       Collection<Tile> tiles = _ref.getBoard().getTiles();
+      // Seafarers: accumulate gold-hex production (resource of player's choice).
+      Map<Integer, Integer> goldCounts = new HashMap<>();
       // Iterate through tiles on the board
       for (Tile t : tiles) {
         // If the tile matches the roll and does not have the robber
         if (t.getRollNumber() == diceRoll && !t.hasRobber()) {
+          if (t.getType() == TileType.GOLD) {
+            // Gold hexes produce a resource of the player's choice.
+            for (Map.Entry<Integer, Integer> e : t.goldProduction()
+                .entrySet()) {
+              goldCounts.merge(e.getKey(), e.getValue(), Integer::sum);
+            }
+            continue;
+          }
           // Find out who should collect what from the intersections
           Map<Integer, Map<Resource, Integer>> fromTile = t
               .notifyIntersections();
@@ -139,6 +150,14 @@ public class RollDice implements FollowUpAction {
               "%d was rolled.", diceRoll), new HashMap<Resource, Integer>());
           toRet.put(p.getID(), toAdd);
         }
+      }
+      // Seafarers: queue a gold-resource choice for each affected player.
+      if (!goldCounts.isEmpty()) {
+        Collection<FollowUpAction> goldFollowUps = new ArrayList<>();
+        for (Map.Entry<Integer, Integer> e : goldCounts.entrySet()) {
+          goldFollowUps.add(new ChooseGoldResource(e.getKey(), e.getValue()));
+        }
+        _ref.addFollowUp(goldFollowUps);
       }
     } else {
       // 7 is rolled:

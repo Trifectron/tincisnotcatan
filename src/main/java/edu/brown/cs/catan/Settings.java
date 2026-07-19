@@ -14,6 +14,8 @@ public abstract class Settings {
   public final static int INITIAL_ROADS = 15;
   public final static int INITIAL_SETTLEMENTS = 5;
   public final static int INITIAL_CITIES = 4;
+  // Seafarers: number of ship pieces each player begins with.
+  public final static int INITIAL_SHIPS = 15;
 
   // Numbers on the board:
   public final static int[] ROLL_NUMS = { 5, 2, 6, 3, 8, 10, 9, 12, 11, 4, 8,
@@ -38,6 +40,9 @@ public abstract class Settings {
       Resource.WHEAT, 2.0, Resource.ORE, 3.0);
   public final static Map<Resource, Double> ROAD_COST = ImmutableMap.of(
       Resource.BRICK, 1.0, Resource.WOOD, 1.0);
+  // Seafarers: a ship costs one wood and one sheep.
+  public final static Map<Resource, Double> SHIP_COST = ImmutableMap.of(
+      Resource.WOOD, 1.0, Resource.SHEEP, 1.0);
   public final static Map<Resource, Double> DEV_COST = ImmutableMap.of(
       Resource.WHEAT, 1.0, Resource.SHEEP, 1.0, Resource.ORE, 1.0);
   public final static Map<Resource, Double> SETTLEMENT_COST = ImmutableMap.of(
@@ -76,6 +81,8 @@ public abstract class Settings {
   public static final int CITY_POINT_VAL = 2;
   public static final int LONGEST_ROAD_POINT_VAL = 2;
   public static final int LARGEST_ARMY_POINT_VAL = 2;
+  // Seafarers: bonus VP for each settlement/city on a non-home island.
+  public static final int FOREIGN_ISLAND_POINT_VAL = 2;
   public static final double DROP_CARDS_THRESH = 7;
   public static final int WINNING_POINT_COUNT = 10;
 

@@ -19,6 +19,12 @@ public class Path {
   private Intersection _start;
   private Intersection _end;
   private Road _road;
+  // Seafarers expansion: a Path may host a Ship instead of a Road.
+  private Ship _ship;
+  // True if this path borders at least one water tile (ships may sail here).
+  private boolean _isMaritime;
+  // True if this path borders water on BOTH sides (open sea: no roads here).
+  private boolean _isPureSea;
 
   /**
    * Constructor for the class.
@@ -32,17 +38,75 @@ public class Path {
     _start = start;
     _end = end;
     _road = null;
+    _ship = null;
+    _isMaritime = false;
+    _isPureSea = false;
     start.addPath(this);
     end.addPath(this);
   }
 
   /**
    * Gets the road on this path.
-   * 
+   *
    * @return the road, else null.
    */
   public Road getRoad() {
     return _road;
+  }
+
+  /**
+   * Gets the ship on this path (Seafarers).
+   *
+   * @return the ship, else null.
+   */
+  public Ship getShip() {
+    return _ship;
+  }
+
+  /**
+   * @return whether ships may be placed on this path (it borders water).
+   */
+  public boolean isMaritime() {
+    return _isMaritime;
+  }
+
+  /**
+   * @return whether this path is open sea (water on both sides; no roads).
+   */
+  public boolean isPureSea() {
+    return _isPureSea;
+  }
+
+  /**
+   * Marks whether this path borders water (a ship-legal edge).
+   *
+   * @param maritime
+   *          whether at least one adjacent tile is water.
+   */
+  public void setMaritime(boolean maritime) {
+    _isMaritime = maritime;
+  }
+
+  /**
+   * Marks whether this path is open sea (water on both sides). Roads may not be
+   * built on open-sea paths.
+   *
+   * @param pureSea
+   *          whether both adjacent tiles are water.
+   */
+  public void setPureSea(boolean pureSea) {
+    _isPureSea = pureSea;
+  }
+
+  // Whether the given path hosts a piece (road or ship) owned by the player.
+  private static boolean isOwnedBy(Path p, Player player) {
+    if (p.getRoad() != null && p.getRoad().getPlayer().equals(player)) {
+      return true;
+    }
+    if (p.getShip() != null && p.getShip().getPlayer().equals(player)) {
+      return true;
+    }
+    return false;
   }
 
   @Override
@@ -92,7 +156,7 @@ public class Path {
       visited.add(toVisit);
       int curr = counts.get(toVisit) + 1;
       for (Path p : toVisit.getStart().getPaths()) {
-        if (p.getRoad() != null && p.getRoad().getPlayer().equals(player)) {
+        if (isOwnedBy(p, player)) {
           if (!visited.contains(p)) {
             visited.add(p);
             counts.put(p, curr);
@@ -105,7 +169,7 @@ public class Path {
         }
       }
       for (Path p : toVisit.getEnd().getPaths()) {
-        if (p.getRoad() != null && p.getRoad().getPlayer().equals(player)) {
+        if (isOwnedBy(p, player)) {
           if (!visited.contains(p)) {
             visited.add(p);
             counts.put(p, curr);
@@ -155,7 +219,12 @@ public class Path {
    *         this path.
    */
   public boolean canPlaceRoad(Player p) {
-    if (_road != null) {
+    if (_road != null || _ship != null) {
+      return false;
+    }
+    // Roads cannot be built on open sea (Seafarers). Coastal and inland paths
+    // are unaffected; in the base game no path is ever open sea.
+    if (_isPureSea) {
       return false;
     }
 
@@ -190,6 +259,56 @@ public class Path {
   public void placeRoad(Player p) {
     if (canPlaceRoad(p)) {
       _road = new Road(p);
+    }
+  }
+
+  /**
+   * States whether the input player can build a ship on this path (Seafarers).
+   * A ship is legal on a water/coastal path that is empty and connected to the
+   * player's network via an adjacent settlement/city or another of the player's
+   * ships.
+   *
+   * @param p
+   *          Player who wants to build a ship.
+   * @return whether the player may build a ship here.
+   */
+  public boolean canPlaceShip(Player p) {
+    if (!_isMaritime) {
+      return false;
+    }
+    if (_road != null || _ship != null) {
+      return false;
+    }
+    if (_start.getBuilding() != null
+        && _start.getBuilding().getPlayer().equals(p)) {
+      return true;
+    }
+    if (_end.getBuilding() != null
+        && _end.getBuilding().getPlayer().equals(p)) {
+      return true;
+    }
+    for (Path path : _start.getPaths()) {
+      if (path.getShip() != null && path.getShip().getPlayer().equals(p)) {
+        return true;
+      }
+    }
+    for (Path path : _end.getPaths()) {
+      if (path.getShip() != null && path.getShip().getPlayer().equals(p)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Places a ship associated with the input player on this path (Seafarers).
+   *
+   * @param p
+   *          Player who is trying to build a ship on this path.
+   */
+  public void placeShip(Player p) {
+    if (canPlaceShip(p)) {
+      _ship = new Ship(p);
     }
   }
 

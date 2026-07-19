@@ -15,7 +15,10 @@ var TILE_TYPE = {
 	WHEAT: 4,
 	SHEEP: 5,
 	DESERT: 6,
-	SEA: 7
+	SEA: 7,
+	// Seafarers expansion tile types:
+	WATER: 8,
+	GOLD: 9
 }
 
 var PORT = {
@@ -54,7 +57,7 @@ function Tile(coordinates, tileType, number, hasRobber, port) {
 
 	if (this.tileType === TILE_TYPE.DESERT) {
 		$("#" + this.id + "-wrapper").append("<div class='circle number-circle desert-circle'></div>");
-	} else if (this.tileType === TILE_TYPE.SEA) {
+	} else if (this.tileType === TILE_TYPE.SEA || this.tileType === TILE_TYPE.WATER) {
 		$("#" + this.id + "-wrapper").append("<div class='circle number-circle sea-circle'></div>");
 	} else {
 		$("#" + this.id + "-wrapper").append("<div class='circle number-circle number-circle-color'>"
@@ -105,6 +108,12 @@ Tile.prototype.draw = function(transX, transY, scale) {
 		case TILE_TYPE.DESERT:
 			element.addClass("desert-color");
 			break;
+		case TILE_TYPE.GOLD:
+			element.addClass("gold-color");
+			break;
+		case TILE_TYPE.WATER:
+			element.addClass("water-color");
+			break;
 		case TILE_TYPE.SEA:
 			element.css("background", "none");
 			// element.addClass("sea-color");
@@ -132,7 +141,8 @@ Tile.prototype.draw = function(transX, transY, scale) {
 	numberCircle.css("width", (scale * NUMBER_CIRCLE_SCALE) + "px");
 	numberCircle.css("height", (scale * NUMBER_CIRCLE_SCALE) + "px");
 		
-	if (!(this.tileType === TILE_TYPE.DESERT || this.tileType === TILE_TYPE.SEA)) {
+	if (!(this.tileType === TILE_TYPE.DESERT || this.tileType === TILE_TYPE.SEA
+			|| this.tileType === TILE_TYPE.WATER)) {
 		// Scale and center tile number
 		numberCircle.css("font-size", (scale * NUMBER_SCALE) + "px");
 		numberCircle.children("span").css("line-height", (scale * NUMBER_CIRCLE_SCALE) + "px");		
@@ -242,7 +252,8 @@ Tile.prototype.draw = function(transX, transY, scale) {
  * @return whether this tile can have the robber placed on it
  */
 Tile.prototype.isRobbable = function() {
-	return !(this.tileType === TILE_TYPE.SEA || this.hasRobber); 
+	return !(this.tileType === TILE_TYPE.SEA || this.tileType === TILE_TYPE.WATER
+			|| this.hasRobber);
 }
 
 /*
@@ -344,6 +355,10 @@ function parseTileType(tileType) {
 			return TILE_TYPE.DESERT;
 		case "SEA":
 			return TILE_TYPE.SEA;
+		case "WATER":
+			return TILE_TYPE.WATER;
+		case "GOLD":
+			return TILE_TYPE.GOLD;
 		default:
 			return;
 	}

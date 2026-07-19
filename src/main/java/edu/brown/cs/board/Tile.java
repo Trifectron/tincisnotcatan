@@ -297,6 +297,27 @@ public class Tile implements BoardTile {
   }
 
   /**
+   * Gold-hex production (Seafarers): maps each player with an adjacent building
+   * to the number of resources they may choose (settlement = 1, city = 2). Gold
+   * hexes produce a resource of the player's choice, resolved by a
+   * ChooseGoldResource follow-up, so they cannot use {@link #notifyIntersections}
+   * (which requires a fixed resource type).
+   *
+   * @return A map of player id to the number of resources they may choose.
+   */
+  public Map<Integer, Integer> goldProduction() {
+    Map<Integer, Integer> counts = new HashMap<>();
+    for (Intersection i : _intersections) {
+      Building b = i.getBuilding();
+      if (b != null) {
+        int pips = (b instanceof City) ? 2 : 1;
+        counts.merge(b.getPlayer().getID(), pips, Integer::sum);
+      }
+    }
+    return counts;
+  }
+
+  /**
    * Sets the port for this tile.
    *
    * @param p

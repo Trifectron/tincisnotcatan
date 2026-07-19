@@ -408,6 +408,15 @@ body {
 	background-color: #B5D7E5;
 }
 
+/* Seafarers: gold hex and navigable water. */
+.gold-color {
+	background: linear-gradient(135deg, #F5D033, #C9A227);
+}
+
+.water-color {
+	background-color: #6BAED6;
+}
+
 .wildcard-color {
 	background-color: #FFFFFF;
 }
@@ -551,6 +560,14 @@ body {
 	/*border-left: 1px solid black;*/
 	/*border-right: 1px solid black;*/
 	z-index: 0;
+}
+
+/* Seafarers: a ship, styled distinctly from a road (dashed, rounded hull). */
+.ship-piece {
+	border: 2px dashed rgba(255, 255, 255, 0.85);
+	border-radius: 45%;
+	box-sizing: border-box;
+	z-index: 1;
 }
 
 .path-select {

@@ -207,6 +207,13 @@ public class Board {
    *          Settings for how the board should be made.
    */
   public Board(GameSettings settings) {
+    // Ports are only used by the base-game (standard/random) boards.
+    PORT_LOCATION = setPortLocations();
+    // Seafarers: build the fixed island scenario instead of the hex spiral.
+    if (settings.isSeafarers) {
+      generateSeafarersBoard();
+      return;
+    }
     List<TileType> availTiles = new ArrayList<TileType>();
     int[] rollNums = ROLL_NUMS;
     // Determines whether the board should be random or not;
@@ -224,8 +231,6 @@ public class Board {
         Collections.shuffle(availTiles);
       } while ((availTiles.get(0) == DESERT));
     }
-    // Sets the port locations
-    PORT_LOCATION = setPortLocations();
 
     Map<IntersectionCoordinate, Intersection> intersections = new HashMap<IntersectionCoordinate, Intersection>();
     Map<PathCoordinate, Path> paths = new HashMap<PathCoordinate, Path>();
@@ -312,7 +317,96 @@ public class Board {
   }
 
   /**
-   * 
+   * Builds the fixed Seafarers "Heading for New Shores" board from
+   * {@link SeafarersScenario}. Land, gold and water tiles are all fully wired
+   * (every surrounding intersection/path is created) so that ships have water
+   * paths to sail on. Afterwards it flags which paths are navigable (maritime),
+   * which are open sea (no roads), and which intersections touch land.
+   */
+  private void generateSeafarersBoard() {
+    Map<IntersectionCoordinate, Intersection> intersections = new HashMap<>();
+    Map<PathCoordinate, Path> paths = new HashMap<>();
+    _tiles = new ArrayList<>();
+    for (SeafarersScenario.TileData td : SeafarersScenario.NEW_SHORES) {
+      if (td.type == DESERT) {
+        _tiles
+            .add(new Tile(0, td.coord, intersections, paths, DESERT, true));
+      } else {
+        _tiles.add(new Tile(td.number, td.coord, intersections, paths,
+            td.type));
+      }
+    }
+    _intersections = intersections;
+    _paths = paths;
+
+    // Settlements require land: mark intersections that touch a land tile.
+    for (Intersection i : _intersections.values()) {
+      i.setHasAdjacentLand(false);
+    }
+    for (Tile t : _tiles) {
+      if (isLand(t.getType())) {
+        for (Intersection i : t.getIntersections()) {
+          i.setHasAdjacentLand(true);
+        }
+      }
+    }
+
+    // Mark home-island intersections (initial settlements are restricted here,
+    // and settlements on other islands earn bonus victory points).
+    for (Intersection i : _intersections.values()) {
+      i.setHomeIsland(false);
+    }
+    for (Tile t : _tiles) {
+      if (SeafarersScenario.HOME_ISLAND.contains(t.getCoordinate())) {
+        for (Intersection i : t.getIntersections()) {
+          i.setHomeIsland(true);
+        }
+      }
+    }
+
+    // Classify paths by how many adjacent tiles are water:
+    // >=1 water side -> maritime (ships allowed); 2 water sides -> open sea
+    // (roads forbidden).
+    Map<Path, Integer> waterSides = new HashMap<>();
+    for (Tile t : _tiles) {
+      if (t.getType() == TileType.WATER) {
+        for (Path p : edgePaths(t)) {
+          p.setMaritime(true);
+          waterSides.merge(p, 1, Integer::sum);
+        }
+      }
+    }
+    for (Map.Entry<Path, Integer> e : waterSides.entrySet()) {
+      if (e.getValue() >= 2) {
+        e.getKey().setPureSea(true);
+      }
+    }
+  }
+
+  // A tile counts as land for building purposes (gold and desert are land).
+  private static boolean isLand(TileType type) {
+    return type != TileType.WATER && type != TileType.SEA;
+  }
+
+  // The six perimeter paths of a fully-wired tile (consecutive corner pairs).
+  private List<Path> edgePaths(Tile tile) {
+    List<Intersection> corners = new ArrayList<>(tile.getIntersections());
+    List<Path> edges = new ArrayList<>();
+    int n = corners.size();
+    for (int i = 0; i < n; i++) {
+      Intersection a = corners.get(i);
+      Intersection b = corners.get((i + 1) % n);
+      Path p = _paths
+          .get(new PathCoordinate(a.getPosition(), b.getPosition()));
+      if (p != null) {
+        edges.add(p);
+      }
+    }
+    return edges;
+  }
+
+  /**
+   *
    * @param tileType
    * @param coord
    * @param intersections

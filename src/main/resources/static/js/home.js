@@ -162,6 +162,7 @@ function existingGameSelected(caller) {
 	var isDecimal = $("#decimal-option").hasClass("active");
 	var isDynamic = isDecimal && $("#dynamic-rates-option").hasClass("active");
 	var isStandard = $("#default-board-option").hasClass("active");
+	var isSeafarers = $("#seafarers-option").hasClass("active");
 
 	if (userName == undefined || userName == "") {
 		alert("Please select a username");
@@ -175,6 +176,7 @@ function existingGameSelected(caller) {
 	setCookie("isDecimal", isDecimal);
 	setCookie("isDynamic", isDynamic);
 	setCookie("isStandard", isStandard);
+	setCookie("isSeafarers", isSeafarers);
 	deleteCookie("USER_ID");
 	return true;
 }
@@ -227,6 +229,7 @@ function startGamePressed() {
 	var isDecimal = $("#decimal-option").hasClass("active");
 	var isDynamic = isDecimal && $("#dynamic-rates-option").hasClass("active");
 	var isStandard = $("#default-board-option").hasClass("active");
+	var isSeafarers = $("#seafarers-option").hasClass("active");
 
 	if (userName == undefined || userName == "") {
 		alert("Please select a username");
@@ -245,6 +248,7 @@ function startGamePressed() {
 	setCookie("groupName", groupName);
 	setCookie("isDynamic", isDynamic);
 	setCookie("isStandard", isStandard);
+	setCookie("isSeafarers", isSeafarers);
 
 	deleteCookie("USER_ID");
 	return true; // will allow the get request to process.
