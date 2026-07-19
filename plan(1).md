@@ -30,14 +30,12 @@ planning notes from before Cities & Knights work began.
 
 ### Known gaps (real C&K rules not yet matched by the code)
 Ordered roughly by how self-contained the fix is:
-1. **Knight displacement in `MoveKnight.java`** — in progress, see "Next
-   task" below. This is what `MoveKnightTest.java` specifies.
+1. ~~**Knight displacement in `MoveKnight.java`**~~ — done (`bebfe30`,
+   `a7579b0`). `MoveKnightTest.java` is green.
 2. **Progress-card deck multiplicities** — the real Politics/Science/Trade
    decks have multiple copies of most cards (e.g. 3x Spy, 2x each of most
    others); `ProgressCardDeck` currently holds exactly one of each type.
-3. **Max 2 mighty (tier-3) knights per player** — `UpgradeKnight` and the
-   Smith card have no cap; `Settings.NUM_KNIGHTS` exists but nothing
-   enforces it as a per-player supply limit either.
+3. **Per-tier knight supply cap** — in progress, see "Next task" below.
 4. **4-card progress-card hand limit** — real rules force an immediate
    discard when a 5th progress card is drawn (unless it's your turn). Not
    implemented anywhere.
@@ -52,46 +50,72 @@ Ordered roughly by how self-contained the fix is:
    any means) until the barbarians have reached the island for the first
    time. Not enforced.
 
-### Next task (in progress): knight displacement
-**Spec (verified against the official rulebook, not guessed):** a knight can
-move onto an intersection occupied by a strictly *weaker* opposing knight
-(basic < strong < mighty; a basic knight can never displace since there's no
-weaker tier below it), bumping the weaker knight to an open intersection
-connected by *its own owner's* roads to the intersection it was displaced
-from. If no such open intersection exists, the displaced knight is removed
-from the board entirely. A knight can never displace one of its own
-player's knights, regardless of tier. **Moving a knight — whether to an
-empty intersection or by displacing an enemy — turns the mover to its
-inactive side** (this currently isn't done even for the plain empty-square
-move case in `MoveKnight.java`; fix that too, it's the same code path).
+### Next task (in progress): per-player, per-tier knight supply cap
+**Spec (verified against the official rulebook, not guessed):** each player
+has exactly 6 physical knight pieces — **2 basic, 2 strong, 2 mighty** — a
+hard cap of 2 per tier, per player. This is *not* just "max 2 mighty
+knights"; the same 2-piece cap applies to basic (build time) and strong
+(first upgrade) too. Any action that would give a player a 3rd knight at a
+tier must be rejected, leaving all state unchanged (no partial payment, no
+partial promotion).
 
-**File to change:** `src/main/java/edu/brown/cs/actions/MoveKnight.java`
-only. No new files/classes needed — reuse `Knight.deactivate()`,
-`Intersection.setKnight()`/`removeKnight()`/`getPaths()`, and
-`Path.getOtherEnd()`, all of which already exist. Remove the `ponytail:`
-comment at the top of the class once displacement is implemented — it
-explicitly flags this as the known gap to fill.
+**Files to change (3, one gap each):**
+1. `src/main/java/edu/brown/cs/actions/BuildKnight.java` — `execute()` must
+   reject if the player already has 2 basic-tier (tier-1) knights on the
+   board before paying/placing.
+2. `src/main/java/edu/brown/cs/actions/UpgradeKnight.java` — `execute()`
+   must reject if the player already has 2 knights at the *target* tier
+   (i.e. 2 at tier 2 blocks a tier-1→2 upgrade; 2 at tier 3 blocks a
+   tier-2→3 upgrade) before paying/upgrading. This is a different check
+   from the existing Politics-level-3 gate — both must hold independently.
+3. `src/main/java/edu/brown/cs/catan/ProgressCardType.java`'s `SMITH` card
+   — promotes two named knights for free in one call, and currently
+   validates both before applying either. The cap check must account for
+   **both target knights landing on the same tier in the same call**: e.g.
+   a player with 1 existing tier-3 knight who plays Smith naming two
+   separate tier-2 knights to promote to tier-3 must be rejected (1 + 2 = 3
+   > cap), even though a naive "check each knight against the board's
+   current count" would wrongly allow it since the board hasn't changed
+   yet when the second knight is checked. Simulate sequentially: as each
+   named knight is validated in turn, decrement a local count at its
+   current tier and increment one at its target tier, and check the running
+   count against the cap — don't just re-query the live board per knight.
 
-**Executable spec:** `src/test/java/edu/brown/cs/actions/MoveKnightTest.java`
-(new file, written 2026-07-18). Currently 3 of 5 tests fail against the
-existing code — that's expected, they encode the new behavior:
-- `movingToAnEmptyIntersectionDeactivatesTheKnight` — fails (no
-  deactivation yet).
-- `displacesAWeakerEnemyKnightToAnOpenRelocationSpot` — fails (no
-  displacement yet).
-- `displacedKnightIsRemovedWhenNoRelocationSpotExists` — fails (destination
-  occupied by any knight is currently a blanket rejection).
-- `rejectsDisplacingYourOwnKnight` and `rejectsDisplacingAnEqualOrStrongerKnight`
-  already pass today (as an accidental side effect of the current blanket
-  "destination must be empty" rejection) — these must keep passing after the
-  fix; they pin down the two guard conditions on top of the tier check.
+**Suggested shared helper:** `BuildKnight`/`UpgradeKnight` are both in
+`edu.brown.cs.actions`, so a `KnightActions.countKnightsAtTier(Referee,
+Player, int tier)` static helper (alongside the existing `canAfford`/`pay`/
+`broadcast` helpers in that class) is the natural, DRY spot for the shared
+board-scan. `ProgressCardType.java` lives in `edu.brown.cs.catan` and can't
+reach package-private `KnightActions` — give `SMITH` its own local scan,
+consistent with how it (and Deserter/Warlord/Spy) already do their own
+board scans rather than importing across packages.
 
-**Verify with:** `mvn -q test -Dtest=MoveKnightTest` for a fast loop, then
-the full `mvn -q test` (run twice) before considering it done — this repo's
-convention is two clean consecutive runs to catch flakiness before a commit.
-Do not touch any other test file for this task; `ProgressCardTest.java`'s
-`intrigueDeactivatesStrongestOpposingKnight` test already covers Intrigue
-and is unrelated to this change.
+**Executable spec (all new/changed tests currently fail against the
+unmodified code, confirmed via `mvn -q test` on 2026-07-18 — 4 failures,
+no other regressions, 68/72 passing):**
+- `src/test/java/edu/brown/cs/actions/BuildKnightTest.java` (new file) —
+  `rejectsBuildingAThirdBasicKnight`: builds 2 basic knights for one player
+  (both succeed), a 3rd at a distinct legal spot must fail and leave that
+  spot knight-less.
+- `src/test/java/edu/brown/cs/actions/UpgradeKnightTest.java` (existing
+  file, 2 new tests appended) — `rejectsAThirdKnightUpgradeToStrongTier`:
+  3 basic knights, upgrade the first 2 to tier 2 (both succeed), the 3rd
+  upgrade attempt must fail and leave that knight at tier 1.
+  `rejectsAThirdKnightUpgradeToMightyTier`: same shape one tier up (3
+  knights pre-set to tier 2 directly via `Knight.upgrade()`, Politics
+  advanced to level 3, first 2 upgrades to tier 3 succeed, 3rd must fail
+  and leave that knight at tier 2).
+- `src/test/java/edu/brown/cs/catan/ProgressCardTest.java` (existing file,
+  1 new test appended) — `smithRespectsThePerTierMightyKnightCap`: the
+  simultaneous-same-tier-promotion edge case described above. Asserts the
+  message contains `"cap"` (case-insensitive) — pick wording that satisfies
+  that, doesn't need to match exactly.
+
+**Verify with:**
+`mvn -q test -Dtest=BuildKnightTest,UpgradeKnightTest,ProgressCardTest` for
+a fast loop, then the full `mvn -q test` (run twice) before considering it
+done — this repo's convention is two clean consecutive runs to catch
+flakiness before a commit.
 
 ---
 

@@ -1023,6 +1023,54 @@ public class ProgressCardTest {
     assertTrue(msg.contains("level-3 Politics"));
   }
 
+  // Level N of an improvement costs N coins.
+  private static void advancePoliticsTo(Player p, int targetLevel) {
+    int coinsNeeded = targetLevel * (targetLevel + 1) / 2;
+    p.addCommodity(Commodity.COIN, coinsNeeded);
+    for (int level = 0; level < targetLevel; level++) {
+      assertTrue("Politics improvement should be affordable",
+          p.canImproveCity(CityImprovement.POLITICS));
+      p.improveCity(CityImprovement.POLITICS);
+    }
+    assertEquals(targetLevel, p.getImprovementLevel(CityImprovement.POLITICS));
+  }
+
+  @Test
+  public void smithRespectsThePerTierMightyKnightCap() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player p = ref.getPlayerByID(p0);
+    advancePoliticsTo(p, 3);
+
+    Intersection[] spots = new Intersection[3];
+    int found = 0;
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      spots[found] = i;
+      i.placeKnight(p);
+      found++;
+      if (found == 3) {
+        break;
+      }
+    }
+    // p already has one mighty knight (spots[0]); Smith then tries to
+    // promote two more tier-2 knights to mighty in one call, which would
+    // put p at 3 mighty knights -- one over the 2-per-tier cap -- even
+    // though each promotion is individually legal.
+    spots[0].getKnight().upgrade();
+    spots[0].getKnight().upgrade();
+    spots[1].getKnight().upgrade();
+    spots[2].getKnight().upgrade();
+
+    String target = intersectionTarget(spots[1].getPosition()) + ";"
+        + intersectionTarget(spots[2].getPosition());
+    String msg = ProgressCardType.SMITH.play(ref, p, target);
+
+    assertEquals(2, spots[1].getKnight().getTier());
+    assertEquals(2, spots[2].getKnight().getTier());
+    assertTrue(msg.toLowerCase().contains("cap"));
+  }
+
   @Test
   public void warlordActivatesAllOfYourInactiveKnights() {
     MasterReferee ref = cnkReferee();

@@ -5,6 +5,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
@@ -46,6 +48,22 @@ public class UpgradeKnightTest {
     assertNotNull(target);
     target.placeKnight(p);
     return target;
+  }
+
+  // Places n fresh basic knights for p on distinct empty intersections.
+  private static List<Intersection> placeKnights(MasterReferee ref, Player p,
+      int n) {
+    List<Intersection> result = new ArrayList<>();
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      if (i.getBuilding() == null && i.getKnight() == null) {
+        i.placeKnight(p);
+        result.add(i);
+        if (result.size() == n) {
+          break;
+        }
+      }
+    }
+    return result;
   }
 
   private static void stockKnightCosts(Player p, int stacks) {
@@ -117,6 +135,57 @@ public class UpgradeKnightTest {
     new UpgradeKnight(ref, p0, knightAt.getPosition()).execute();
     new UpgradeKnight(ref, p0, knightAt.getPosition()).execute();
     assertEquals(Settings.MAX_KNIGHT_TIER, knightAt.getKnight().getTier());
+  }
+
+  // Cities & Knights limits each player to 2 physical pieces per tier (2
+  // basic, 2 strong, 2 mighty). BuildKnightTest covers the basic-tier half;
+  // these two cover the strong/mighty half.
+  @Test
+  public void rejectsAThirdKnightUpgradeToStrongTier() {
+    MasterReferee ref = cnk(2);
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    List<Intersection> knights = placeKnights(ref, pa, 3);
+    stockKnightCosts(pa, 3);
+
+    new UpgradeKnight(ref, p0, knights.get(0).getPosition()).execute();
+    new UpgradeKnight(ref, p0, knights.get(1).getPosition()).execute();
+    assertEquals(2, knights.get(0).getKnight().getTier());
+    assertEquals(2, knights.get(1).getKnight().getTier());
+
+    Map<Integer, ActionResponse> third = new UpgradeKnight(ref, p0,
+        knights.get(2).getPosition()).execute();
+
+    assertFalse(third.get(p0).getSuccess());
+    assertEquals(1, knights.get(2).getKnight().getTier());
+  }
+
+  @Test
+  public void rejectsAThirdKnightUpgradeToMightyTier() {
+    MasterReferee ref = cnk(2);
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    List<Intersection> knights = placeKnights(ref, pa, 3);
+    // Force all three to tier 2 directly, bypassing the gated action, so
+    // the test isolates the tier-3 cap from the tier-2 cap.
+    for (Intersection i : knights) {
+      i.getKnight().upgrade();
+    }
+    advancePoliticsTo(pa, 3);
+    stockKnightCosts(pa, 3);
+
+    new UpgradeKnight(ref, p0, knights.get(0).getPosition()).execute();
+    new UpgradeKnight(ref, p0, knights.get(1).getPosition()).execute();
+    assertEquals(3, knights.get(0).getKnight().getTier());
+    assertEquals(3, knights.get(1).getKnight().getTier());
+
+    Map<Integer, ActionResponse> third = new UpgradeKnight(ref, p0,
+        knights.get(2).getPosition()).execute();
+
+    assertFalse(third.get(p0).getSuccess());
+    assertEquals(2, knights.get(2).getKnight().getTier());
   }
 
   @Test
