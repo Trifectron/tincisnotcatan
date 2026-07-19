@@ -70,6 +70,16 @@ public class MoveRobber implements FollowUpAction {
       throw new UnsupportedOperationException(
           "A FollowUpAction must be setup before it is executed.");
     }
+    // Cities & Knights rule: the robber cannot be moved (via any means)
+    // until the barbarian fleet has reached the island for the first time.
+    if (_ref.getBarbarianTrack() != null
+        && !_ref.getBarbarianTrack().hasEverReachedIsland()) {
+      Map<Integer, ActionResponse> toReturn = new HashMap<>();
+      toReturn.put(_playerID, new ActionResponse(false,
+          "The robber cannot be moved until the barbarians have "
+              + "reached the island for the first time.", null));
+      return toReturn;
+    }
     Map<Integer, ActionResponse> toRet = new HashMap<Integer, ActionResponse>();
     Set<Integer> playersOnTile = Collections.emptySet();
     try {

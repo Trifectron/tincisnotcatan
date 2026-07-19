@@ -9,9 +9,15 @@ package edu.brown.cs.catan;
 public class BarbarianTrack {
 
   private int _position;
+  // Latches to true the first time the fleet reaches the island. The
+  // official Cities & Knights rules forbid moving the robber (via any
+  // means) until the barbarians have reached the island for the first
+  // time; after that, robber moves are always allowed.
+  private boolean _hasReachedIslandOnce;
 
   public BarbarianTrack() {
     _position = 0;
+    _hasReachedIslandOnce = false;
   }
 
   public int getPosition() {
@@ -25,6 +31,9 @@ public class BarbarianTrack {
     if (_position < Settings.BARBARIAN_TRACK_LENGTH) {
       _position++;
     }
+    if (_position >= Settings.BARBARIAN_TRACK_LENGTH) {
+      _hasReachedIslandOnce = true;
+    }
   }
 
   /**
@@ -32,6 +41,14 @@ public class BarbarianTrack {
    */
   public boolean hasReachedIsland() {
     return _position >= Settings.BARBARIAN_TRACK_LENGTH;
+  }
+
+  /**
+   * @return Whether the fleet has ever reached the island. Used to gate
+   *         robber movement per the Cities & Knights rules.
+   */
+  public boolean hasEverReachedIsland() {
+    return _hasReachedIslandOnce;
   }
 
   /**

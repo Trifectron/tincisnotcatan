@@ -82,6 +82,15 @@ public class ChaseRobber implements Action {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
           "The destination hex isn't on the board.", null));
     }
+    // Cities & Knights: the robber cannot be moved until the barbarian
+    // fleet has reached the island for the first time. The knight chase
+    // rule still applies, but if the gate is closed we reject.
+    if (_ref.getBarbarianTrack() != null
+        && !_ref.getBarbarianTrack().hasEverReachedIsland()) {
+      return ImmutableMap.of(_player.getID(), new ActionResponse(false,
+          "The robber cannot be moved until the barbarians have reached "
+              + "the island for the first time.", null));
+    }
 
     // Deactivate the knight (the cost) and move the robber.
     knight.deactivate();

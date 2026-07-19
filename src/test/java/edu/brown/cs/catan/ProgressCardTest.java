@@ -722,6 +722,11 @@ public class ProgressCardTest {
 
     ProgressCardType.BISHOP.play(ref, pa);
     FollowUpAction followUp = ref.getNextFollowUp(p0);
+    // The C&K robber-move timing gate requires the barbarians to have
+    // reached the island for the first time before any robber move.
+    for (int i = 0; i < Settings.BARBARIAN_TRACK_LENGTH; i++) {
+      ref.getBarbarianTrack().advance();
+    }
     HexCoordinate coord = target.getCoordinate();
     JsonObject location = new JsonObject();
     location.addProperty("x", coord.getX());

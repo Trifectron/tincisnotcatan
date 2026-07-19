@@ -19,6 +19,7 @@ import edu.brown.cs.catan.GameSettings;
 import edu.brown.cs.catan.MasterReferee;
 import edu.brown.cs.catan.Player;
 import edu.brown.cs.catan.Resource;
+import edu.brown.cs.catan.Settings;
 
 /**
  * Cities & Knights "chase away the robber" with an active knight: the
@@ -32,6 +33,14 @@ public class ChaseRobberTest {
     json.addProperty("isCitiesAndKnights", true);
     json.addProperty("numPlayers", numPlayers);
     return new MasterReferee(new GameSettings(json));
+  }
+
+  // Drive the barbarian fleet all the way to the island so the robber-move
+  // timing gate opens (per Cities & Knights rules).
+  private static void openRobberGate(MasterReferee ref) {
+    for (int i = 0; i < Settings.BARBARIAN_TRACK_LENGTH; i++) {
+      ref.getBarbarianTrack().advance();
+    }
   }
 
   // Find the tile currently holding the robber.
@@ -61,6 +70,7 @@ public class ChaseRobberTest {
     int p1 = ref.addPlayer("B", "#111111");
     Player pa = ref.getPlayerByID(p0);
     Player pb = ref.getPlayerByID(p1);
+    openRobberGate(ref);
 
     Tile robber = robberTile(ref);
     assertNotNull(robber);
@@ -182,5 +192,31 @@ public class ChaseRobberTest {
     // Touch Random so this test gets picked up by the deterministic test
     // suite without tripping flake-detection heuristics.
     new Random().nextBoolean();
+  }
+
+  @Test
+  public void robberGateIsClosedUntilBarbariansReachTheIsland() {
+    MasterReferee ref = cnk(2);
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+
+    // The track is fresh; hasEverReachedIsland is false.
+    Tile robber = robberTile(ref);
+    Intersection knightAt = robber.getIntersections().iterator().next();
+    knightAt.placeKnight(pa);
+    knightAt.getKnight().activate();
+
+    Tile destination = differentTile(ref, robber);
+    Map<Integer, ActionResponse> response = new ChaseRobber(ref, p0,
+        knightAt.getPosition(), destination.getCoordinate()).execute();
+
+    assertFalse("ChaseRobber must be rejected before barbarians reach "
+        + "the island for the first time",
+        response.get(p0).getSuccess());
+    // The knight is still active since the action never executed.
+    assertTrue("Knight must remain active when the action is rejected",
+        ref.getBoard().getIntersections().get(knightAt.getPosition())
+            .getKnight().isActive());
   }
 }
