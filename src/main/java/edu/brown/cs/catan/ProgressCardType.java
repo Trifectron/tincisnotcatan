@@ -473,8 +473,11 @@ public enum ProgressCardType {
   }),
 
   // Saboteur has no target: every player with at least as many victory
-  // points as you must discard half (rounded down) of their resource
-  // cards, chosen by them via the same DropCards flow as a rolled 7.
+  // points as you must discard half their resource cards (rounded up),
+  // chosen by them via the same DropCards flow as a rolled 7. Per the
+  // Mayfair rulebook, the discard count is ceil(n / 2) (rounding up),
+  // with a minimum of 1 card dropped for any player holding at least
+  // one resource card.
   // ponytail: matches the codebase's existing resource-only discard
   // convention (RollDice's 7-discard also ignores commodities).
   SABOTEUR(CityImprovement.POLITICS, "Saboteur", (ref, player, target) -> {
@@ -485,11 +488,13 @@ public enum ProgressCardType {
           || other.numVictoryPoints() < player.numVictoryPoints()) {
         continue;
       }
-      double numToDrop = Math.floor(other.getNumResourceCards() / 2.0);
-      if (numToDrop > 0) {
-        followUps.add(new DropCards(other.getID(), numToDrop));
-        affected++;
+      double hasCards = other.getNumResourceCards();
+      if (hasCards <= 0) {
+        continue; // already empty-handed, no discard needed.
       }
+      double numToDrop = Math.max(1, Math.ceil(hasCards / 2.0));
+      followUps.add(new DropCards(other.getID(), numToDrop));
+      affected++;
     }
     if (!followUps.isEmpty()) {
       ref.addFollowUp(followUps);
@@ -497,7 +502,7 @@ public enum ProgressCardType {
     return affected > 0
         ? String.format(
             "You played Saboteur. %d player(s) must discard half their "
-                + "cards.", affected)
+                + "cards (rounded up).", affected)
         : "You played Saboteur but no player has as many victory points as "
             + "you.";
   }),
