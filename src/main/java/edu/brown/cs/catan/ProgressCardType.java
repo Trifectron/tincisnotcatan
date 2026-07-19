@@ -7,6 +7,7 @@ import java.util.Map;
 import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonObject;
 
+import edu.brown.cs.actions.DropCards;
 import edu.brown.cs.actions.FollowUpAction;
 import edu.brown.cs.actions.MoveRobber;
 import edu.brown.cs.actions.PlaceRoad;
@@ -367,6 +368,132 @@ public enum ProgressCardType {
         owner.getName());
   }),
 
+  // Deserter's target is an opponent's name, optionally followed by
+  // ";x,y,z|x,y,z|x,y,z" naming an intersection to place a replacement
+  // knight of your own. The opponent loses their weakest knight (standing
+  // in for "their choice"), which you may replace at equal strength.
+  DESERTER(CityImprovement.POLITICS, "Deserter", (ref, player, target) -> {
+    String[] parts = target == null ? new String[0] : target.split(";", 2);
+    Player opponent = parts.length > 0 ? findPlayerByName(ref, parts[0])
+        : null;
+    if (opponent == null || opponent.equals(player)) {
+      return "You played Deserter but didn't name a valid opponent.";
+    }
+    Intersection removedSpot = null;
+    Knight removed = null;
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      Knight k = i.getKnight();
+      if (k != null && k.getPlayer().equals(opponent)
+          && (removed == null || k.getTier() < removed.getTier())) {
+        removed = k;
+        removedSpot = i;
+      }
+    }
+    if (removed == null) {
+      return String.format("You played Deserter but %s has no knights.",
+          opponent.getName());
+    }
+    int tier = removed.getTier();
+    removedSpot.removeKnight();
+    if (parts.length == 2) {
+      Intersection newSpot;
+      try {
+        newSpot = ref.getBoard().getIntersections()
+            .get(parseIntersectionCoordinate(parts[1]));
+      } catch (Exception e) {
+        newSpot = null;
+      }
+      if (newSpot != null && newSpot.canPlaceKnight(player.getID())) {
+        Knight replacement = new Knight(player);
+        while (replacement.getTier() < tier) {
+          replacement.upgrade();
+        }
+        newSpot.setKnight(replacement);
+        return String.format(
+            "You played Deserter, removed %s's tier-%d knight, and placed "
+                + "your own tier-%d knight.",
+            opponent.getName(), tier, tier);
+      }
+    }
+    return String.format(
+        "You played Deserter and removed %s's tier-%d knight.",
+        opponent.getName(), tier);
+  }),
+
+  // Saboteur has no target: every player with at least as many victory
+  // points as you must discard half (rounded down) of their resource
+  // cards, chosen by them via the same DropCards flow as a rolled 7.
+  // ponytail: matches the codebase's existing resource-only discard
+  // convention (RollDice's 7-discard also ignores commodities).
+  SABOTEUR(CityImprovement.POLITICS, "Saboteur", (ref, player, target) -> {
+    Collection<FollowUpAction> followUps = new ArrayList<>();
+    int affected = 0;
+    for (Player other : ref.getPlayers()) {
+      if (other.equals(player)
+          || other.numVictoryPoints() < player.numVictoryPoints()) {
+        continue;
+      }
+      double numToDrop = Math.floor(other.getNumResourceCards() / 2.0);
+      if (numToDrop > 0) {
+        followUps.add(new DropCards(other.getID(), numToDrop));
+        affected++;
+      }
+    }
+    if (!followUps.isEmpty()) {
+      ref.addFollowUp(followUps);
+    }
+    return affected > 0
+        ? String.format(
+            "You played Saboteur. %d player(s) must discard half their "
+                + "cards.", affected)
+        : "You played Saboteur but no player has as many victory points as "
+            + "you.";
+  }),
+
+  // Spy's target is "opponentName;cardName". Steals one named progress card
+  // from the opponent's hand.
+  SPY(CityImprovement.POLITICS, "Spy", (ref, player, target) -> {
+    String[] parts = target == null ? new String[0] : target.split(";", 2);
+    Player opponent = parts.length > 0 ? findPlayerByName(ref, parts[0])
+        : null;
+    if (opponent == null || opponent.equals(player)) {
+      return "You played Spy but didn't name a valid opponent.";
+    }
+    if (parts.length != 2) {
+      return "You played Spy but didn't name a card to steal.";
+    }
+    ProgressCardType stolen;
+    try {
+      stolen = fromString(parts[1]);
+    } catch (Exception e) {
+      return "You played Spy but didn't name a valid progress card.";
+    }
+    if (!opponent.removeProgressCard(stolen)) {
+      return String.format("You played Spy but %s doesn't hold a %s card.",
+          opponent.getName(), stolen.getName());
+    }
+    player.addProgressCard(stolen);
+    return String.format("You played Spy and stole a %s card from %s.",
+        stolen.getName(), opponent.getName());
+  }),
+
+  // Warlord has no target: activates every one of your knights for free.
+  WARLORD(CityImprovement.POLITICS, "Warlord", (ref, player, target) -> {
+    int activated = 0;
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      Knight k = i.getKnight();
+      if (k != null && k.getPlayer().equals(player) && !k.isActive()) {
+        k.activate();
+        activated++;
+      }
+    }
+    return activated > 0
+        ? String.format(
+            "You played Warlord and activated %d knight(s) for free.",
+            activated)
+        : "You played Warlord but have no inactive knights to activate.";
+  }),
+
   // Trade deck.
   // Merchant's target is one tile coordinate, "x,y,z".
   MERCHANT(CityImprovement.TRADE, "Merchant", (ref, player, target) -> {
@@ -609,5 +736,16 @@ public enum ProgressCardType {
     String[] parts = str.split("\\|");
     return new IntersectionCoordinate(parseHexCoordinate(parts[0]),
         parseHexCoordinate(parts[1]), parseHexCoordinate(parts[2]));
+  }
+
+  // Finds a player by display name (case-insensitive), for cards that
+  // target a specific opponent (Deserter, Spy).
+  private static Player findPlayerByName(Referee ref, String name) {
+    for (Player p : ref.getPlayers()) {
+      if (p.getName().equalsIgnoreCase(name)) {
+        return p;
+      }
+    }
+    return null;
   }
 }

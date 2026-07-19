@@ -59,14 +59,16 @@ public class ProgressCardTest {
     assertNull(science.draw());
 
     ProgressCardDeck politics = new ProgressCardDeck(CityImprovement.POLITICS);
-    assertEquals(5, politics.size());
+    assertEquals(9, politics.size());
     Set<ProgressCardType> drawnPolitics = new HashSet<>();
     while (!politics.isEmpty()) {
       drawnPolitics.add(politics.draw());
     }
     assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
         ProgressCardType.INTRIGUE, ProgressCardType.WEDDING,
-        ProgressCardType.BISHOP, ProgressCardType.DIPLOMAT), drawnPolitics);
+        ProgressCardType.BISHOP, ProgressCardType.DIPLOMAT,
+        ProgressCardType.DESERTER, ProgressCardType.SABOTEUR,
+        ProgressCardType.SPY, ProgressCardType.WARLORD), drawnPolitics);
 
     ProgressCardDeck trade = new ProgressCardDeck(CityImprovement.TRADE);
     assertEquals(5, trade.size());
@@ -1019,5 +1021,181 @@ public class ProgressCardTest {
     assertEquals(2, spots[0].getKnight().getTier());
     assertEquals(2, spots[1].getKnight().getTier());
     assertTrue(msg.contains("level-3 Politics"));
+  }
+
+  @Test
+  public void warlordActivatesAllOfYourInactiveKnights() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    Player pa = ref.getPlayerByID(p0);
+
+    Intersection[] spots = new Intersection[2];
+    int found = 0;
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      spots[found] = i;
+      i.placeKnight(pa);
+      found++;
+      if (found == 2) {
+        break;
+      }
+    }
+
+    String msg = ProgressCardType.WARLORD.play(ref, pa);
+
+    assertTrue(spots[0].getKnight().isActive());
+    assertTrue(spots[1].getKnight().isActive());
+    assertTrue(msg.contains("2 knight"));
+  }
+
+  @Test
+  public void warlordNoOpWithoutInactiveKnights() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    Player pa = ref.getPlayerByID(p0);
+
+    String msg = ProgressCardType.WARLORD.play(ref, pa);
+    assertTrue(msg.contains("no inactive knights"));
+  }
+
+  @Test
+  public void spyStealsANamedProgressCardFromAnOpponent() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+    pb.addProgressCard(ProgressCardType.PRINTER);
+
+    String msg = ProgressCardType.SPY.play(ref, pa, "B;printer");
+
+    assertTrue(pa.getProgressCards().contains(ProgressCardType.PRINTER));
+    assertFalse(pb.getProgressCards().contains(ProgressCardType.PRINTER));
+    assertTrue(msg.contains("stole"));
+  }
+
+  @Test
+  public void spyRejectsWhenOpponentLacksTheNamedCard() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+
+    String msg = ProgressCardType.SPY.play(ref, pa, "B;printer");
+    assertTrue(msg.contains("doesn't hold"));
+  }
+
+  @Test
+  public void spyRejectsAnUnknownOpponent() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+
+    String msg = ProgressCardType.SPY.play(ref, pa, "Nobody;printer");
+    assertTrue(msg.contains("didn't name a valid opponent"));
+  }
+
+  @Test
+  public void saboteurQueuesDiscardsForPlayersAtLeastAsRichInPoints() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+    pb.addResource(Resource.WHEAT, 4, ref.getBank());
+
+    String msg = ProgressCardType.SABOTEUR.play(ref, pa);
+
+    assertNull(ref.getNextFollowUp(p0));
+    assertEquals("dropCards", ref.getNextFollowUp(p1).getID());
+    assertTrue(msg.contains("1 player"));
+  }
+
+  @Test
+  public void saboteurSkipsPlayersBehindOnVictoryPoints() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+    pa.addVictoryPoints(2);
+    pb.addResource(Resource.WHEAT, 4, ref.getBank());
+
+    String msg = ProgressCardType.SABOTEUR.play(ref, pa);
+
+    assertNull(ref.getNextFollowUp(p1));
+    assertTrue(msg.contains("no player has as many victory points"));
+  }
+
+  @Test
+  public void deserterRemovesTheOpponentsWeakestKnight() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+
+    Intersection[] spots = new Intersection[2];
+    int found = 0;
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      spots[found] = i;
+      i.placeKnight(pb);
+      found++;
+      if (found == 2) {
+        break;
+      }
+    }
+    spots[1].getKnight().upgrade();
+
+    String msg = ProgressCardType.DESERTER.play(ref, pa, "B");
+
+    assertFalse(spots[0].hasKnight());
+    assertEquals(2, spots[1].getKnight().getTier());
+    assertTrue(msg.contains("tier-1"));
+  }
+
+  @Test
+  public void deserterPlacesYourOwnKnightAtEqualStrength() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+
+    Path path = ref.getBoard().getPaths().values().iterator().next();
+    Intersection weakestSpot = path.getStart();
+    weakestSpot.placeKnight(pb);
+    path.getEnd().placeSettlement(pa);
+    path.placeRoad(pa);
+
+    String target = "B;" + intersectionTarget(weakestSpot.getPosition());
+    String msg = ProgressCardType.DESERTER.play(ref, pa, target);
+
+    assertTrue(weakestSpot.hasKnight());
+    assertEquals(pa, weakestSpot.getKnight().getPlayer());
+    assertEquals(1, weakestSpot.getKnight().getTier());
+    assertTrue(msg.contains("placed"));
+  }
+
+  @Test
+  public void deserterRejectsAnUnknownOpponent() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+
+    String msg = ProgressCardType.DESERTER.play(ref, pa, "Nobody");
+    assertTrue(msg.contains("didn't name a valid opponent"));
+  }
+
+  @Test
+  public void deserterNoOpWhenOpponentHasNoKnights() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+
+    String msg = ProgressCardType.DESERTER.play(ref, pa, "B");
+    assertTrue(msg.contains("no knights"));
   }
 }

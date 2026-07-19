@@ -36,15 +36,17 @@ public class ProgressDeckDrawTest {
         ProgressCardType.ROAD_BUILDING),
         drawnScience);
     assertNull(ref.drawProgressCard(CityImprovement.SCIENCE));
-    // The Politics deck holds Constitution, Intrigue, Wedding, Bishop, and
-    // Diplomat.
+    // The Politics deck holds Constitution, Intrigue, Wedding, Bishop,
+    // Diplomat, Deserter, Saboteur, Spy, and Warlord.
     Set<ProgressCardType> drawnPolitics = new HashSet<>();
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 9; i++) {
       drawnPolitics.add(ref.drawProgressCard(CityImprovement.POLITICS));
     }
     assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
         ProgressCardType.INTRIGUE, ProgressCardType.WEDDING,
-        ProgressCardType.BISHOP, ProgressCardType.DIPLOMAT), drawnPolitics);
+        ProgressCardType.BISHOP, ProgressCardType.DIPLOMAT,
+        ProgressCardType.DESERTER, ProgressCardType.SABOTEUR,
+        ProgressCardType.SPY, ProgressCardType.WARLORD), drawnPolitics);
     assertNull(ref.drawProgressCard(CityImprovement.POLITICS));
     // Trade deck holds Master Merchant, Resource Monopoly, Trade Monopoly,
     // Merchant Fleet, and Merchant.
