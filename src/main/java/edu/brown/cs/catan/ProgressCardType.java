@@ -246,8 +246,8 @@ public enum ProgressCardType {
             + "the highest tier.";
       }
       if (knight.getTier() == Settings.MAX_KNIGHT_TIER - 1
-          && player.getImprovementLevel(CityImprovement.POLITICS) < 3) {
-        return "You played Smith but mighty knights require a level-3 "
+          && player.getImprovementLevel(CityImprovement.POLITICS) < 4) {
+        return "You played Smith but mighty knights require a level-4 "
             + "Politics city improvement.";
       }
       knights[i] = knight;

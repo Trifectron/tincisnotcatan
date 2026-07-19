@@ -60,6 +60,7 @@ public class BuildKnightTest {
   private static void stockKnightCosts(Player p, int count) {
     p.addResource(Resource.ORE, count);
     p.addResource(Resource.SHEEP, count);
+    p.addResource(Resource.WHEAT, count);
   }
 
   @Test

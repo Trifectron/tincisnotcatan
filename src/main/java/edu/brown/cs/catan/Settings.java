@@ -44,10 +44,16 @@ public abstract class Settings {
       Resource.BRICK, 1.0, Resource.SHEEP, 1.0, Resource.WHEAT, 1.0,
       Resource.WOOD, 1.0);
 
-  // Cities & Knights costs. Building and upgrading a knight costs ore + wool;
-  // activating one costs grain (wheat).
+  // Cities & Knights costs (per the official Mayfair rulebook). A new basic
+  // knight costs 1 ore + 1 wool + 1 grain; promoting basic -> strong costs
+  // 1 ore + 1 wool; promoting strong -> mighty costs 2 ore + 1 wool; and
+  // activating a knight costs 1 grain + 1 commodity (player picks which).
   public final static Map<Resource, Double> KNIGHT_COST = ImmutableMap.of(
-      Resource.ORE, 1.0, Resource.SHEEP, 1.0);
+      Resource.ORE, 1.0, Resource.SHEEP, 1.0, Resource.WHEAT, 1.0);
+  public final static Map<Resource, Double> KNIGHT_UPGRADE_COST =
+      ImmutableMap.of(Resource.ORE, 1.0, Resource.SHEEP, 1.0);
+  public final static Map<Resource, Double> KNIGHT_MIGHTY_PROMOTE_COST =
+      ImmutableMap.of(Resource.ORE, 2.0, Resource.SHEEP, 1.0);
   public final static Map<Resource, Double> ACTIVATE_KNIGHT_COST =
       ImmutableMap.of(Resource.WHEAT, 1.0);
   public static final int MAX_KNIGHT_TIER = 3;

@@ -1095,11 +1095,14 @@ public class ProgressCardTest {
   }
 
   @Test
-  public void smithGatesMightyPromotionOnPoliticsLevelThree() {
+  public void smithGatesMightyPromotionOnPoliticsLevelFour() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");
     ref.addPlayer("B", "#111111");
     Player p = ref.getPlayerByID(p0);
+    // Politics level 3 is one short of the metropolis gate; mighty
+    // promotions via Smith must still be rejected.
+    advancePoliticsTo(p, 3);
 
     Intersection[] spots = new Intersection[2];
     int found = 0;
@@ -1119,7 +1122,7 @@ public class ProgressCardTest {
 
     assertEquals(2, spots[0].getKnight().getTier());
     assertEquals(2, spots[1].getKnight().getTier());
-    assertTrue(msg.contains("level-3 Politics"));
+    assertTrue(msg.contains("level-4 Politics"));
   }
 
   // Level N of an improvement costs N coins.
@@ -1140,7 +1143,9 @@ public class ProgressCardTest {
     int p0 = ref.addPlayer("A", "#000000");
     ref.addPlayer("B", "#111111");
     Player p = ref.getPlayerByID(p0);
-    advancePoliticsTo(p, 3);
+    // Mighty knights require Politics level 4 (the metropolis level). Bump
+    // it so the test can directly place mighty knights via the public API.
+    advancePoliticsTo(p, 4);
 
     Intersection[] spots = new Intersection[3];
     int found = 0;

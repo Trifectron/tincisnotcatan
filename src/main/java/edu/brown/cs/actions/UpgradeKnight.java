@@ -11,6 +11,7 @@ import edu.brown.cs.catan.CityImprovement;
 import edu.brown.cs.catan.Player;
 import edu.brown.cs.catan.Referee;
 import edu.brown.cs.catan.Referee.GameStatus;
+import edu.brown.cs.catan.Resource;
 import edu.brown.cs.catan.Settings;
 
 /**
@@ -62,11 +63,12 @@ public class UpgradeKnight implements Action {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
           "That knight is already at the highest tier.", null));
     }
-    // Promoting to mighty (tier 3) requires a level-3 Politics improvement.
+    // Promoting to mighty (tier 3) requires a level-4 Politics improvement
+    // (the metropolis level), per the official Cities & Knights rules.
     if (knight.getTier() == Settings.MAX_KNIGHT_TIER - 1
-        && _player.getImprovementLevel(CityImprovement.POLITICS) < 3) {
+        && _player.getImprovementLevel(CityImprovement.POLITICS) < 4) {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
-          "Mighty knights require a level-3 Politics city improvement.", null));
+          "Mighty knights require a level-4 Politics city improvement.", null));
     }
     // Each player has exactly 2 knights per tier. The target tier after
     // upgrade is knight.getTier() + 1.
@@ -76,13 +78,17 @@ public class UpgradeKnight implements Action {
           String.format("You already have 2 tier-%d knights on the board (per-tier cap).", targetTier),
           null));
     }
-    if (!KnightActions.canAfford(_player, Settings.KNIGHT_COST)) {
+    // Strong -> mighty (tier-2 -> tier-3) costs 2 ore + 1 wool; basic ->
+    // strong (tier-1 -> tier-2) costs 1 ore + 1 wool. Per the rulebook.
+    Map<Resource, Double> upgradeCost = knight.getTier() == Settings.MAX_KNIGHT_TIER - 1
+        ? Settings.KNIGHT_MIGHTY_PROMOTE_COST : Settings.KNIGHT_UPGRADE_COST;
+    if (!KnightActions.canAfford(_player, upgradeCost)) {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
           "You do not have the resources to upgrade a knight.", null));
     }
 
     // The Action:
-    KnightActions.pay(_player, Settings.KNIGHT_COST, _ref);
+    KnightActions.pay(_player, upgradeCost, _ref);
     knight.upgrade();
 
     return KnightActions.broadcast(_ref, _player, "You upgraded a knight.",
