@@ -283,13 +283,30 @@ public class MasterReferee implements Referee {
   }
 
   // Downgrades one of the player's cities (if any) back to a settlement.
+  // City walls buffer barbarian attacks (Cities & Knights): if the player has
+  // any walled city, we destroy the wall instead and leave the city intact, so
+  // a walled city can absorb one hit while a later unwalled city still loses.
   private void downgradeOneCity(int playerID) {
+    // First pass: prefer an unwalled city to actually downgrade.
     for (Intersection i : _board.getIntersections().values()) {
       Building building = i.getBuilding();
       if (building instanceof City
-          && building.getPlayer().getID() == playerID) {
-        i.downgradeCity();
+          && building.getPlayer().getID() == playerID
+          && !((City) building).hasWall()
+          && i.downgradeCity()) {
         getPlayerByID(playerID).downgradeCity();
+        return;
+      }
+    }
+    // Second pass: every owned city is walled. Destroy one wall in lieu of
+    // downgrading anything (still satisfies the barbarian's "one city-level
+    // damage" rule).
+    for (Intersection i : _board.getIntersections().values()) {
+      Building building = i.getBuilding();
+      if (building instanceof City
+          && building.getPlayer().getID() == playerID
+          && ((City) building).hasWall()) {
+        i.downgradeCity(); // returns false here, but destroys the wall
         return;
       }
     }

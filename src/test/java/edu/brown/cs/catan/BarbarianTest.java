@@ -13,6 +13,7 @@ import com.google.gson.JsonObject;
 
 import org.junit.Test;
 
+import edu.brown.cs.board.City;
 import edu.brown.cs.board.Intersection;
 
 public class BarbarianTest {
@@ -125,5 +126,55 @@ public class BarbarianTest {
     // No active knights: barbarians win and the weakest defenders lose a city.
     ref.resolveBarbarianAttack();
     assertTrue(cityInt.getBuilding() instanceof edu.brown.cs.board.Settlement);
+  }
+
+  @Test
+  public void walledCityAbsorbsBarbarianDowngradeInsteadOfCityLoss() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+
+    Intersection cityInt = ref.getBoard().getIntersections().values()
+        .iterator().next();
+    cityInt.placeSettlement(pa);
+    cityInt.placeCity(pa);
+    ((City) cityInt.getBuilding()).buildWall();
+    int playerCitiesBefore = pa.numCities();
+
+    // Barbarians win; the only owned city is walled, so the wall absorbs the
+    // hit and the city remains.
+    ref.resolveBarbarianAttack();
+    assertTrue(cityInt.getBuilding() instanceof City);
+    assertFalse(((City) cityInt.getBuilding()).hasWall());
+    assertEquals(playerCitiesBefore, pa.numCities());
+  }
+
+  @Test
+  public void barbarianPrefersUnwalledCitiesButFallsBackToWallDestruction() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+
+    // Build a walled city and an unwalled city on the board so two cities
+    // exist for the weakest defender; place pieces are tracked separately
+    // from the player's available settlement/city counts.
+    Iterator<Intersection> it = ref.getBoard().getIntersections().values()
+        .iterator();
+    Intersection walled = it.next();
+    walled.placeSettlement(pa);
+    walled.placeCity(pa);
+    ((City) walled.getBuilding()).buildWall();
+    Intersection unwalled = it.next();
+    unwalled.placeSettlement(pa);
+    unwalled.placeCity(pa);
+
+    ref.resolveBarbarianAttack();
+    // The unwalled city absorbed the actual downgrade; the walled city is
+    // untouched for this attack (a later attack would destroy its wall).
+    assertTrue(unwalled.getBuilding() instanceof edu.brown.cs.board.Settlement);
+    assertTrue(walled.getBuilding() instanceof City);
+    assertTrue(((City) walled.getBuilding()).hasWall());
   }
 }

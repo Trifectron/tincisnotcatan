@@ -66,7 +66,7 @@ public class KnightTest {
     i.placeSettlement(player);
     i.placeCity(player);
     assertTrue(i.getBuilding() instanceof City);
-    i.downgradeCity();
+    assertTrue(i.downgradeCity());
     assertTrue(i.getBuilding() instanceof Settlement);
     assertEquals(player, i.getBuilding().getPlayer());
   }

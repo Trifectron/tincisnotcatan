@@ -21,7 +21,7 @@ public class CityWallTest {
   }
 
   @Test
-  public void downgradingAWalledCityRemovesTheWall() {
+  public void cityWallAbsorbsADowngradeHit() {
     IntersectionCoordinate coord = new IntersectionCoordinate(
         new HexCoordinate(0, 0, 0), new HexCoordinate(1, 0, 0),
         new HexCoordinate(1, 1, 0));
@@ -31,8 +31,25 @@ public class CityWallTest {
     ((City) i.getBuilding()).buildWall();
     assertTrue(((City) i.getBuilding()).hasWall());
 
-    i.downgradeCity();
-    // A downgraded city is a settlement again, so the wall is gone.
+    // Barbarian downgrade: a walled city absorbs the hit by losing only its
+    // wall; the city itself remains.
+    boolean downgraded = i.downgradeCity();
+    assertFalse(downgraded);
+    assertTrue(i.getBuilding() instanceof City);
+    assertFalse(((City) i.getBuilding()).hasWall());
+  }
+
+  @Test
+  public void downgradeOnUnwalledCityReturnsTrue() {
+    IntersectionCoordinate coord = new IntersectionCoordinate(
+        new HexCoordinate(0, 0, 0), new HexCoordinate(1, 0, 0),
+        new HexCoordinate(1, 1, 0));
+    Intersection i = new Intersection(coord);
+    i.placeSettlement(player);
+    i.placeCity(player);
+
+    boolean downgraded = i.downgradeCity();
+    assertTrue(downgraded);
     assertTrue(i.getBuilding() instanceof Settlement);
   }
 }

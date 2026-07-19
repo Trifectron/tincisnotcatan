@@ -286,13 +286,24 @@ public class Intersection {
   }
 
   /**
-   * Downgrades a city on this intersection back to a settlement (e.g. after a
-   * lost barbarian attack). No-op if there is no city here.
+   * Downgrades a city on this intersection back to a settlement, honoring a
+   * city wall as a buffer against barbarian attacks (Cities & Knights):
+   * if the city has a wall, the wall absorbs this hit and is destroyed
+   * instead of the city being downgraded. Returns whether the city was
+   * actually downgraded to a settlement. No-op (returns false) if there is
+   * no city here at all.
    */
-  public void downgradeCity() {
-    if (_building instanceof City) {
-      _building = new Settlement(_building.getPlayer());
+  public boolean downgradeCity() {
+    if (!(_building instanceof City)) {
+      return false;
     }
+    City city = (City) _building;
+    if (city.hasWall()) {
+      city.destroyWall();
+      return false;
+    }
+    _building = new Settlement(city.getPlayer());
+    return true;
   }
 
   @Override
