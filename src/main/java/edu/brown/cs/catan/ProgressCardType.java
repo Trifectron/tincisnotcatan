@@ -252,6 +252,24 @@ public enum ProgressCardType {
       }
       knights[i] = knight;
     }
+    // Per-tier supply cap: each player has exactly 2 knights per tier.
+    // Simulate the two promotions sequentially to catch the case where both
+    // land on the same target tier.
+    int[] currentCounts = new int[4]; // tiers 1-3; index 0 unused
+    for (int i = 1; i <= 3; i++) {
+      currentCounts[i] = countKnightsAtTier(ref, player, i);
+    }
+    for (int i = 0; i < 2; i++) {
+      int targetTier = knights[i].getTier() + 1;
+      if (currentCounts[targetTier] >= 2) {
+        return String.format(
+            "You played Smith but already have 2 tier-%d knights (per-tier cap).",
+            targetTier);
+      }
+      // Simulate this promotion for the next iteration's check.
+      currentCounts[knights[i].getTier()]--;
+      currentCounts[targetTier]++;
+    }
     knights[0].upgrade();
     knights[1].upgrade();
     return "You played Smith and promoted two knights one tier each, for "
@@ -727,6 +745,21 @@ public enum ProgressCardType {
     String[] parts = str.split(",");
     return new HexCoordinate(Integer.parseInt(parts[0]),
         Integer.parseInt(parts[1]), Integer.parseInt(parts[2]));
+  }
+
+  // Counts how many knights the given player has on the board at the
+  // specified tier. Used by Smith to enforce the 2-per-tier supply cap on
+  // simultaneous promotions.
+  private static int countKnightsAtTier(Referee ref, Player player, int tier) {
+    int count = 0;
+    for (edu.brown.cs.board.Intersection i : ref.getBoard()
+        .getIntersections().values()) {
+      edu.brown.cs.board.Knight k = i.getKnight();
+      if (k != null && k.getPlayer().equals(player) && k.getTier() == tier) {
+        count++;
+      }
+    }
+    return count;
   }
 
   // Parses "x,y,z|x,y,z|x,y,z" into an IntersectionCoordinate, for

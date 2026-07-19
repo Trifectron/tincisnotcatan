@@ -57,6 +57,12 @@ public class BuildKnight implements Action {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
           "You cannot place a knight at that location.", null));
     }
+    // Each player has exactly 2 knights per tier (basic/strong/mighty).
+    if (KnightActions.countKnightsAtTier(_ref, _player, 1) >= 2) {
+      return ImmutableMap.of(_player.getID(), new ActionResponse(false,
+          "You already have 2 basic knights on the board (per-tier cap).",
+          null));
+    }
 
     // The Action:
     KnightActions.pay(_player, Settings.KNIGHT_COST, _ref);

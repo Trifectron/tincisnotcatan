@@ -53,4 +53,20 @@ final class KnightActions {
     }
     return toReturn;
   }
+
+  /**
+   * Counts how many knights the given player has on the board at the specified
+   * tier. Used to enforce the 2-per-tier supply cap.
+   */
+  static int countKnightsAtTier(Referee ref, Player player, int tier) {
+    int count = 0;
+    for (edu.brown.cs.board.Intersection i : ref.getBoard()
+        .getIntersections().values()) {
+      edu.brown.cs.board.Knight k = i.getKnight();
+      if (k != null && k.getPlayer().equals(player) && k.getTier() == tier) {
+        count++;
+      }
+    }
+    return count;
+  }
 }

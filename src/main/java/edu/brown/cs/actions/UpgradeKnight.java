@@ -68,6 +68,14 @@ public class UpgradeKnight implements Action {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
           "Mighty knights require a level-3 Politics city improvement.", null));
     }
+    // Each player has exactly 2 knights per tier. The target tier after
+    // upgrade is knight.getTier() + 1.
+    int targetTier = knight.getTier() + 1;
+    if (KnightActions.countKnightsAtTier(_ref, _player, targetTier) >= 2) {
+      return ImmutableMap.of(_player.getID(), new ActionResponse(false,
+          String.format("You already have 2 tier-%d knights on the board (per-tier cap).", targetTier),
+          null));
+    }
     if (!KnightActions.canAfford(_player, Settings.KNIGHT_COST)) {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
           "You do not have the resources to upgrade a knight.", null));
