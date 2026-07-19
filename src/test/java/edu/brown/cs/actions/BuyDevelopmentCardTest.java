@@ -94,5 +94,23 @@ public class BuyDevelopmentCardTest {
     assertTrue(ref.getPlayerByID(0).getNumDevelopmentCards() == 1);
   }
 
-  
+  // Cities & Knights has no development-card deck (progress cards replace
+  // them). Buying a dev card must be rejected even when the player can
+  // otherwise afford it.
+  @Test
+  public void rejectedInCitiesAndKnights() {
+    JsonObject set = new JsonObject();
+    set.addProperty("numPlayers", 1);
+    set.addProperty("isCitiesAndKnights", true);
+    Referee ref = new MasterReferee(new GameSettings(set));
+    ref.addPlayer("Sean", "Red");
+    ref.setGameStatus(GameStatus.PROGRESS);
+    ref.getPlayerByID(0).addResource(Resource.ORE);
+    ref.getPlayerByID(0).addResource(Resource.SHEEP);
+    ref.getPlayerByID(0).addResource(Resource.WHEAT);
+    Map<Integer, ActionResponse> response = new BuyDevelopmentCard(ref, 0)
+        .execute();
+    assertTrue(!response.get(0).getSuccess());
+    assertTrue(ref.getPlayerByID(0).getNumDevelopmentCards() == 0);
+  }
 }

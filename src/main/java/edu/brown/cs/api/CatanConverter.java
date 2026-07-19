@@ -85,7 +85,7 @@ public class CatanConverter {
       this.playerID = playerID;
       this.currentTurn = ref.currentPlayer() != null ? ref.currentPlayer()
           .getID() : -1;
-      this.hand = new Hand(ref.getPlayerByID(playerID));
+      this.hand = new Hand(ref.getPlayerByID(playerID), ref.getGameSettings());
       this.board = new BoardRaw(ref.getReadOnlyReferee(), ref.getBoard(),
           playerID);
       this.turnOrder = (ref.getGameStatus() != GameStatus.WAITING) ? ref
@@ -146,7 +146,7 @@ public class CatanConverter {
     private boolean canAffordKnight;
     private boolean canAffordActivateKnight;
 
-    public Hand(Player player) {
+    public Hand(Player player, GameSettings settings) {
       resources = player.getResources();
       commodities = player.getCommodities();
       improvements = player.getCityImprovements();
@@ -155,11 +155,28 @@ public class CatanConverter {
       canBuildRoad = player.canBuildRoad();
       canBuildSettlement = player.canBuildSettlement();
       canBuildCity = player.canBuildCity();
-      canBuyDevCard = player.canBuyDevelopmentCard();
-      canBuildCityWall = canAfford(resources, Settings.CITY_WALL_COST);
-      canAffordKnight = canAfford(resources, Settings.KNIGHT_COST);
-      canAffordActivateKnight =
-          canAfford(resources, Settings.ACTIVATE_KNIGHT_COST);
+      // C&K has no development-card deck — the BuyDevelopmentCard action
+      // rejects the request in C&K games, so disable the UI affordance too.
+      canBuyDevCard = !settings.isCitiesAndKnights
+          && player.canBuyDevelopmentCard();
+      canBuildCityWall = !settings.isCitiesAndKnights ? false
+          : canAfford(resources, Settings.CITY_WALL_COST);
+      canAffordKnight = !settings.isCitiesAndKnights ? false
+          : canAfford(resources, Settings.KNIGHT_COST);
+      // Activating a knight needs wheat plus any commodity; the commodity
+      // side is checked by iterating the player's commodity map.
+      boolean hasAnyCommodity = false;
+      if (settings.isCitiesAndKnights) {
+        for (double c : player.getCommodities().values()) {
+          if (c > 0) {
+            hasAnyCommodity = true;
+            break;
+          }
+        }
+      }
+      canAffordActivateKnight = settings.isCitiesAndKnights
+          && canAfford(resources, Settings.ACTIVATE_KNIGHT_COST)
+          && hasAnyCommodity;
     }
 
     private static boolean canAfford(Map<Resource, Double> resources,
