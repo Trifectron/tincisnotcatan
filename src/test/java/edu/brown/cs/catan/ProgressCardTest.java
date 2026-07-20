@@ -45,8 +45,9 @@ public class ProgressCardTest {
   @Test
   public void deckHoldsOnlyItsTrackAndDrainsToEmpty() {
     ProgressCardDeck science = new ProgressCardDeck(CityImprovement.SCIENCE);
-    // 10 science card types, 2 copies each = 20 cards.
-    assertEquals(20, science.size());
+    // 8 science card types have 2 copies each (16), Engineer and Printer
+    // have 1 copy each (2), per the official 18-card Science deck.
+    assertEquals(18, science.size());
     Set<ProgressCardType> drawn = new HashSet<>();
     while (!science.isEmpty()) {
       drawn.add(science.draw());
@@ -59,10 +60,10 @@ public class ProgressCardTest {
         ProgressCardType.ROAD_BUILDING), drawn);
     assertNull(science.draw());
 
-    // 9 politics card types: Spy has 3 copies (per the official rulebook),
-    // the other 8 have 2 copies each = 19 cards.
+    // 9 politics card types: Spy has 3 copies, Constitution has 1, the
+    // other 7 have 2 copies each, per the official 18-card Politics deck.
     ProgressCardDeck politics = new ProgressCardDeck(CityImprovement.POLITICS);
-    assertEquals(19, politics.size());
+    assertEquals(18, politics.size());
     Set<ProgressCardType> drawnPolitics = new HashSet<>();
     while (!politics.isEmpty()) {
       drawnPolitics.add(politics.draw());
@@ -74,9 +75,12 @@ public class ProgressCardTest {
         ProgressCardType.SPY, ProgressCardType.WARLORD), drawnPolitics);
     assertNull(politics.draw());
 
-    // 5 trade card types, 2 copies each = 10 cards.
+    // 5 trade card types are implemented: Merchant has 6 copies, Resource
+    // Monopoly has 4, and Master Merchant/Trade Monopoly/Merchant Fleet
+    // have 2 each = 16 cards. (Commercial Harbor, x2 in the real 18-card
+    // Trade deck, isn't implemented yet.)
     ProgressCardDeck trade = new ProgressCardDeck(CityImprovement.TRADE);
-    assertEquals(10, trade.size());
+    assertEquals(16, trade.size());
     Set<ProgressCardType> drawnTrade = new HashSet<>();
     while (!trade.isEmpty()) {
       drawnTrade.add(trade.draw());

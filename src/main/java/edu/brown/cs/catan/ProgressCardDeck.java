@@ -46,13 +46,24 @@ public class ProgressCardDeck {
 
   /**
    * How many copies of this card the deck should hold, per the official
-   * Cities & Knights multiplicity rule. Defaults to 2 for every card; cards
-   * that the printed rules ship with a different count override here. The
-   * real deck has 3 copies of Spy and 2 of every other card.
+   * Cities & Knights 54-card deck (18 per track). Defaults to 2 for every
+   * card; the cards the printed rules ship with a different count override
+   * here: Merchant x6, Resource Monopoly x4, Spy x3, and Printer/Engineer/
+   * Constitution x1 each (the deck's rarest, VP-bearing cards).
+   * ponytail: Commercial Harbor (Trade, x2 in the real deck) isn't
+   * implemented as a ProgressCardType yet, so the Trade deck is 16 cards
+   * instead of 18 until that card exists.
    */
   private static int deckMultiplicity(ProgressCardType card) {
-    Map<ProgressCardType, Integer> overrides = ImmutableMap.of(
-        ProgressCardType.SPY, 3);
+    Map<ProgressCardType, Integer> overrides = ImmutableMap
+        .<ProgressCardType, Integer>builder()
+        .put(ProgressCardType.SPY, 3)
+        .put(ProgressCardType.MERCHANT, 6)
+        .put(ProgressCardType.RESOURCE_MONOPOLY, 4)
+        .put(ProgressCardType.PRINTER, 1)
+        .put(ProgressCardType.ENGINEER, 1)
+        .put(ProgressCardType.CONSTITUTION, 1)
+        .build();
     Integer special = overrides.get(card);
     return special != null ? special : 2;
   }
