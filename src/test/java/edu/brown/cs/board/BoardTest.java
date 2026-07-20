@@ -245,4 +245,46 @@ public class BoardTest {
     assertTrue(b.longestPath(player) == 2);
   }
 
+  // Per official Settlers of Catan: an opponent's settlement or city
+  // breaks the longest-road chain. Two of player-p's roads sharing an
+  // opponent building at the middle intersection must not chain through
+  // it; the longest-road count is the longer of the two arms, not the
+  // combined length.
+  @Test
+  public void testLongestRoadBreaksAcrossOpponentSettlement() {
+    Board b = new Board(new GameSettings());
+    HexCoordinate h1 = new HexCoordinate(0, 0, 0);
+    HexCoordinate h2 = new HexCoordinate(-1, 0, 0);
+    HexCoordinate h3 = new HexCoordinate(0, 0, 1);
+    IntersectionCoordinate start = new IntersectionCoordinate(h1, h2, h3);
+
+    HexCoordinate h4 = new HexCoordinate(0, 0, 0);
+    HexCoordinate h5 = new HexCoordinate(0, 0, 1);
+    HexCoordinate h6 = new HexCoordinate(0, -1, 0);
+    IntersectionCoordinate end = new IntersectionCoordinate(h4, h5, h6);
+
+    HexCoordinate h7 = new HexCoordinate(0, -1, 1);
+    HexCoordinate h8 = new HexCoordinate(0, 0, 1);
+    HexCoordinate h9 = new HexCoordinate(0, -1, 0);
+    IntersectionCoordinate end2 = new IntersectionCoordinate(h7, h8, h9);
+
+    PathCoordinate firstCoord = new PathCoordinate(start, end);
+    PathCoordinate secondCoord = new PathCoordinate(end, end2);
+    Player playerP = new HumanPlayer(0, "p", "#000000");
+    Player playerQ = new HumanPlayer(1, "q", "#ffffff");
+
+    // Player P places a settlement at start and P can place roads on the
+    // firstCoord and secondCoord paths (the middle intersection is owned
+    // by the opponent, breaking any chain in the rulebook-correct view).
+    b.getIntersections().get(start).placeSettlement(playerP);
+    b.getIntersections().get(end).placeSettlement(playerQ);
+    b.getPaths().get(firstCoord).placeRoad(playerP);
+    b.getPaths().get(secondCoord).placeRoad(playerP);
+    // The longest chain should be 1, since the opponent's settlement at
+    // the middle intersection cuts a 2-road chain into two 1-road
+    // segments. With the new rule, the value must be exactly 1; without
+    // it, the buggy walker would still report 2.
+    assertTrue(b.longestPath(playerP) == 1);
+  }
+
 }

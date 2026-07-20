@@ -87,34 +87,37 @@ public class Path {
     Map<Path, Integer> counts = new HashMap<>();
     queue.add(this);
     counts.put(this, 0);
+    // Per the official Catan rulebook, an opponent's settlement or city
+    // breaks the longest-road chain — so when walking through an
+    // intersection, refuse to continue if the *next* intersection
+    // (i.e., the one beyond the new path) has an opponent building
+    // sitting on it. The player's own buildings don't block.
     while (!queue.isEmpty()) {
       Path toVisit = queue.remove(0);
       visited.add(toVisit);
       int curr = counts.get(toVisit) + 1;
       for (Path p : toVisit.getStart().getPaths()) {
-        if (p.getRoad() != null && p.getRoad().getPlayer().equals(player)) {
-          if (!visited.contains(p)) {
-            visited.add(p);
-            counts.put(p, curr);
-            queue.add(0, p);
-          } else {
-            if (curr - counts.get(p) == 5) {
-              counts.put(p, curr);
-            }
-          }
+        if (!chainIsUnblocked(p, player, toVisit)) {
+          continue;
+        }
+        if (!visited.contains(p)) {
+          visited.add(p);
+          counts.put(p, curr);
+          queue.add(0, p);
+        } else if (curr - counts.get(p) == 5) {
+          counts.put(p, curr);
         }
       }
       for (Path p : toVisit.getEnd().getPaths()) {
-        if (p.getRoad() != null && p.getRoad().getPlayer().equals(player)) {
-          if (!visited.contains(p)) {
-            visited.add(p);
-            counts.put(p, curr);
-            queue.add(0, p);
-          } else {
-            if (curr - counts.get(p) == 5) {
-              counts.put(p, curr);
-            }
-          }
+        if (!chainIsUnblocked(p, player, toVisit)) {
+          continue;
+        }
+        if (!visited.contains(p)) {
+          visited.add(p);
+          counts.put(p, curr);
+          queue.add(0, p);
+        } else if (curr - counts.get(p) == 5) {
+          counts.put(p, curr);
         }
       }
     }
@@ -126,6 +129,34 @@ public class Path {
       }
     }
     return max;
+  }
+
+  // True when p is one of `player`'s roads AND the intersection at the
+  // *far end* of p (relative to `toVisit`) is not blocked by an
+  // opponent's settlement or city. Used by getLongestPath to enforce
+  // the official longest-road breaks-across-opponent-settlements rule.
+  private static boolean chainIsUnblocked(Path p, Player player,
+      Path toVisit) {
+    if (p.getRoad() == null || !p.getRoad().getPlayer().equals(player)) {
+      return false;
+    }
+    // The far intersection of p (the endpoint away from toVisit) must be
+    // open — no opponent building may sit there. We don't yet know
+    // which endpoint is "shared" with toVisit, but since p is a road
+    // segment between two intersections, both endpoints are candidates.
+    // For each intersection on p, if it's not shared with toVisit, it
+    // is the candidate far end.
+    Intersection farEnd = null;
+    if (p.getStart() == toVisit.getStart() || p.getStart() == toVisit.getEnd()) {
+      farEnd = p.getEnd();
+    } else {
+      farEnd = p.getStart();
+    }
+    if (farEnd == null) {
+      return false;
+    }
+    Building b = farEnd.getBuilding();
+    return b == null || b.getPlayer().equals(player);
   }
 
   /**
