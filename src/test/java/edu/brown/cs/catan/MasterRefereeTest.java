@@ -1,5 +1,6 @@
 package edu.brown.cs.catan;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -246,6 +247,52 @@ public class MasterRefereeTest {
   // we simulate by having the holder's count stay at 3 while another
   // player also drops — covering the threshold-loss fact: the bonus
   // isn't released while the holder remains at the threshold.
+  // 5-6 player Catan extension wins at 12; default 4 (or fewer) player
+  // games still hit 10 unless the JSON explicitly overrides.
+  @Test
+  public void gameSettingsAutoBumpsWinningPointCountForLargePlayerCount() {
+    com.google.gson.JsonObject j1 = new com.google.gson.JsonObject();
+    j1.addProperty("numPlayers", 6);
+    edu.brown.cs.catan.GameSettings gs1 = new edu.brown.cs.catan.GameSettings(j1);
+    assertTrue(gs1.winningPointCount == 12);
+
+    com.google.gson.JsonObject j2 = new com.google.gson.JsonObject();
+    j2.addProperty("numPlayers", 4);
+    edu.brown.cs.catan.GameSettings gs2 = new edu.brown.cs.catan.GameSettings(j2);
+    assertTrue(gs2.winningPointCount == 10);
+
+    // Caller override via victoryPoints key survives even at 6 players.
+    com.google.gson.JsonObject j3 = new com.google.gson.JsonObject();
+    j3.addProperty("numPlayers", 6);
+    j3.addProperty("victoryPoints", 15);
+    edu.brown.cs.catan.GameSettings gs3 = new edu.brown.cs.catan.GameSettings(j3);
+    assertTrue(gs3.winningPointCount == 15);
+  }
+
+  // Real-rule: a player who hits the threshold mid-turn doesn't end the
+  // game until the current turn has resolved (i.e., EndTurn -> startNextTurn
+  // has been called). getWinner() returns null in that window.
+  @Test
+  public void getWinnerReturnsNullMidTurn() {
+    Referee ref = new MasterReferee();
+    int id = ref.addPlayer("p1", "color");
+    Player p = ref.getPlayerByID(id);
+    // Add 10 hidden VPs to comfortably exceed the 10-point win threshold.
+    for (int i = 0; i < 10; i++) {
+      p.addDevelopmentCard(DevelopmentCard.POINT);
+    }
+    // Without the mid-turn gate, getWinner() would already return this
+    // player.
+    assertTrue("Player is over the threshold mid-turn but no turn has "
+        + "ended yet", ref.getWinner() == null);
+
+    // After EndTurn-style startNextTurn, getWinner() resolves to the
+    // player (the lowest-id tiebreaker).
+    ref.startNextTurn();
+    assertTrue(ref.getWinner() != null);
+    assertEquals(id, ref.getWinner().getID());
+  }
+
   @Test
   public void largestArmyHolderLosesItWhenAnotherStrictlyOutranks() {
     Referee ref = new MasterReferee();

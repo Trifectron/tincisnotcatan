@@ -63,6 +63,20 @@ public class GameSettings {
     } catch (NullPointerException e) {
       System.out.println("SETTINGS missing isCitiesAndKnights parameter");
     }
+    // The 5-6 player Catan extension plays to 12 points. The default
+    // JSON-driven value is the standard 10; bump it when numPlayers > 4
+    // unless the caller explicitly overrode the threshold via the
+    // "victoryPoints" key.
+    boolean callerProvidedVictoryPoints = false;
+    try {
+      settings.get("victoryPoints").getAsInt();
+      callerProvidedVictoryPoints = true;
+    } catch (NullPointerException e) {
+      // missing -> default to 10; auto-bump below if numPlayers > 4.
+    }
+    if (!callerProvidedVictoryPoints && numPlayers > 4) {
+      winningPointCount = 12;
+    }
     this.winningPointCount = winningPointCount;
     this.numPlayers = numPlayers;
     this.isDecimal = isDecimal;

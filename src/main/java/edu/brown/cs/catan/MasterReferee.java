@@ -51,6 +51,11 @@ public class MasterReferee implements Referee {
   private GameStatus _gameStatus;
   private final Setup _setup;
   private GameStats _gameStats;
+  // Number of times startNextTurn() has been called so far. getWinner()
+  // gates its return-value on this so a player who reaches the trigger
+  // mid-turn doesn't prematurely end the game before the current turn
+  // resolves (per official rules, the win is checked at end of turn).
+  private int _turnEndCounter = 0;
 
   /**
    * Creates a MasterReferee. Contains all Catan game data with default game
@@ -143,6 +148,7 @@ public class MasterReferee implements Referee {
     } else {
       _turn = new Turn(_turn.getTurnNum() + 1, Collections.emptyMap());
     }
+    _turnEndCounter++;
 
   }
 
@@ -488,12 +494,24 @@ public class MasterReferee implements Referee {
 
   @Override
   public Player getWinner() {
+    // Official rules: a player's victory is checked at the end of turn,
+    // not immediately when they reach the threshold. _turnEndCounter is
+    // bumped only by startNextTurn() (called from EndTurn.execute()), so
+    // a counter value of 0 means setup is still in progress or no full
+    // turn has resolved yet.
+    if (_turnEndCounter == 0) {
+      return null;
+    }
+    Player winner = null;
+    int lowestID = Integer.MAX_VALUE;
     for (Player p : _players.values()) {
-      if (getNumTotalPoints(p.getID()) >= _gameSettings.winningPointCount) {
-        return p;
+      if (getNumTotalPoints(p.getID()) >= _gameSettings.winningPointCount
+          && p.getID() < lowestID) {
+        winner = p;
+        lowestID = p.getID();
       }
     }
-    return null;
+    return winner;
   }
 
   @Override
