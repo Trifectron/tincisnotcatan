@@ -111,6 +111,23 @@ public class RollDice implements FollowUpAction {
                     commodityCount.get(commodity));
               }
             }
+            // Per official C&K rule, the merchant placed on a hex also
+            // earns its owner 1 of the hex's resource on every roll of
+            // that hex's number (separate from the 2:1 trade benefit).
+            int merchantOwner = t.getMerchantOwner();
+            if (merchantOwner >= 0
+                && t.getType().getType() != null) {
+              _ref.getPlayerByID(merchantOwner).addResource(
+                  t.getType().getType(), 1, _ref.getBank());
+              if (!playerResourceCount.containsKey(merchantOwner)) {
+                playerResourceCount.put(merchantOwner,
+                    new HashMap<Resource, Integer>());
+              }
+              Map<Resource, Integer> bonusCount = playerResourceCount
+                  .get(merchantOwner);
+              Resource hexResource = t.getType().getType();
+              bonusCount.merge(hexResource, 1, Integer::sum);
+            }
           }
           // Find out who should collect what from the intersections
           Map<Integer, Map<Resource, Integer>> fromTile = t
