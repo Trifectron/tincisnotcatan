@@ -138,18 +138,10 @@ public class ActionFactory {
           return new BuildKnight(_referee, playerID,
               toIntersectionCoordinate(actionJSON.get("coordinate")
                   .getAsJsonObject()));
-        case ActivateKnight.ID: {
-          edu.brown.cs.catan.Commodity commodity = null;
-          if (actionJSON.has("commodity")
-              && !actionJSON.get("commodity").isJsonNull()) {
-            commodity = edu.brown.cs.catan.Commodity
-                .stringToCommodity(actionJSON.get("commodity").getAsString());
-          }
+        case ActivateKnight.ID:
           return new ActivateKnight(_referee, playerID,
               toIntersectionCoordinate(actionJSON.get("coordinate")
-                  .getAsJsonObject()),
-              commodity);
-        }
+                  .getAsJsonObject()));
         case UpgradeKnight.ID:
           return new UpgradeKnight(_referee, playerID,
               toIntersectionCoordinate(actionJSON.get("coordinate")

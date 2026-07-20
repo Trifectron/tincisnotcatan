@@ -63,12 +63,12 @@ public class UpgradeKnight implements Action {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
           "That knight is already at the highest tier.", null));
     }
-    // Promoting to mighty (tier 3) requires a level-4 Politics improvement
-    // (the metropolis level), per the official Cities & Knights rules.
+    // Promoting to mighty (tier 3) requires a level-3 Politics improvement
+    // (the Fortress), per the official Cities & Knights rules.
     if (knight.getTier() == Settings.MAX_KNIGHT_TIER - 1
-        && _player.getImprovementLevel(CityImprovement.POLITICS) < 4) {
+        && _player.getImprovementLevel(CityImprovement.POLITICS) < 3) {
       return ImmutableMap.of(_player.getID(), new ActionResponse(false,
-          "Mighty knights require a level-4 Politics city improvement.", null));
+          "Mighty knights require a level-3 Politics city improvement.", null));
     }
     // Each player has exactly 2 knights per tier. The target tier after
     // upgrade is knight.getTier() + 1.

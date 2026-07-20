@@ -163,20 +163,8 @@ public class CatanConverter {
           : canAfford(resources, Settings.CITY_WALL_COST);
       canAffordKnight = !settings.isCitiesAndKnights ? false
           : canAfford(resources, Settings.KNIGHT_COST);
-      // Activating a knight needs wheat plus any commodity; the commodity
-      // side is checked by iterating the player's commodity map.
-      boolean hasAnyCommodity = false;
-      if (settings.isCitiesAndKnights) {
-        for (double c : player.getCommodities().values()) {
-          if (c > 0) {
-            hasAnyCommodity = true;
-            break;
-          }
-        }
-      }
       canAffordActivateKnight = settings.isCitiesAndKnights
-          && canAfford(resources, Settings.ACTIVATE_KNIGHT_COST)
-          && hasAnyCommodity;
+          && canAfford(resources, Settings.ACTIVATE_KNIGHT_COST);
     }
 
     private static boolean canAfford(Map<Resource, Double> resources,

@@ -98,23 +98,22 @@ public class UpgradeKnightTest {
   }
 
   @Test
-  public void gatesMightyPromotionOnPoliticsLevelFour() {
+  public void gatesMightyPromotionOnPoliticsLevelThree() {
     MasterReferee ref = cnk(2);
     int p0 = ref.addPlayer("A", "#000000");
     ref.addPlayer("B", "#111111");
     Player pa = ref.getPlayerByID(p0);
     Intersection knightAt = placeUpgradableKnight(ref, pa);
 
-    // Stock enough ore+sheep for the basic -> strong upgrade (1 ore + 1
-    // wool) AND stock two extra ore so the strong -> mighty step would be
-    // affordable IF the Politics gate were satisfied. Without the metropolis
-    // level on Politics, the second upgrade must be rejected before any
-    // resources change hands.
-    stockKnightCosts(pa, 3);
-    pa.addResource(Resource.ORE, 1);
-    // Politics level 3 is not enough — the metropolis level (4) is required
+    // Stock enough ore+sheep for both upgrade steps (1 ore + 1 wool each,
+    // the same cost every step) so the second upgrade would be affordable
+    // IF the Politics gate were satisfied. Without the Fortress level on
+    // Politics, the second upgrade must be rejected before any resources
+    // change hands.
+    stockKnightCosts(pa, 2);
+    // Politics level 2 is not enough — the Fortress level (3) is required
     // per the official Cities & Knights rulebook.
-    advancePoliticsTo(pa, 3);
+    advancePoliticsTo(pa, 2);
 
     // First upgrade: tier 1 to tier 2 — always allowed.
     new UpgradeKnight(ref, p0, knightAt.getPosition()).execute();
@@ -129,17 +128,15 @@ public class UpgradeKnightTest {
   }
 
   @Test
-  public void allowsMightyPromotionAtPoliticsLevelFour() {
+  public void allowsMightyPromotionAtPoliticsLevelThree() {
     MasterReferee ref = cnk(2);
     int p0 = ref.addPlayer("A", "#000000");
     ref.addPlayer("B", "#111111");
     Player pa = ref.getPlayerByID(p0);
     Intersection knightAt = placeUpgradableKnight(ref, pa);
-    // 3 ore + 2 sheep total: 1 ore + 1 wool for the basic -> strong upgrade,
-    // then 2 ore + 1 wool for the strong -> mighty upgrade.
-    pa.addResource(Resource.ORE, 3);
-    pa.addResource(Resource.SHEEP, 2);
-    advancePoliticsTo(pa, 4);
+    // 2 ore + 2 sheep total: 1 ore + 1 wool per upgrade step.
+    stockKnightCosts(pa, 2);
+    advancePoliticsTo(pa, 3);
 
     new UpgradeKnight(ref, p0, knightAt.getPosition()).execute();
     new UpgradeKnight(ref, p0, knightAt.getPosition()).execute();
@@ -182,10 +179,10 @@ public class UpgradeKnightTest {
     for (Intersection i : knights) {
       i.getKnight().upgrade();
     }
-    advancePoliticsTo(pa, 4);
-    // Mighty promotion costs 2 ore + 1 wool; one knight upgrade is one of
-    // each. We need three such "increments" — stock properly.
-    pa.addResource(Resource.ORE, 6);
+    advancePoliticsTo(pa, 3);
+    // Mighty promotion costs 1 ore + 1 wool, the same as every other
+    // upgrade step; stock enough for three knights' worth.
+    pa.addResource(Resource.ORE, 3);
     pa.addResource(Resource.SHEEP, 3);
 
     new UpgradeKnight(ref, p0, knights.get(0).getPosition()).execute();
@@ -261,10 +258,10 @@ public class UpgradeKnightTest {
     assertFalse(response.get(p0).getSuccess());
   }
 
-  // Strong -> mighty costs 2 ore + 1 wool; basic -> strong costs 1 ore + 1
-  // wool per the official rulebook.
+  // Strong -> mighty costs the same 1 ore + 1 wool as basic -> strong --
+  // every knight upgrade step costs the same, per the official rulebook.
   @Test
-  public void mightyPromotionRequiresAnExtraOreOverBasicUpgrade() {
+  public void mightyPromotionCostsTheSameAsBasicUpgrade() {
     MasterReferee ref = cnk(2);
     int p0 = ref.addPlayer("A", "#000000");
     ref.addPlayer("B", "#111111");
@@ -274,19 +271,19 @@ public class UpgradeKnightTest {
     // First upgrade: stock exactly 1 ore + 1 wool.
     pa.addResource(Resource.ORE, 1);
     pa.addResource(Resource.SHEEP, 1);
-    advancePoliticsTo(pa, 4);
+    advancePoliticsTo(pa, 3);
     new UpgradeKnight(ref, p0, knightAt.getPosition()).execute();
     assertEquals(2, knightAt.getKnight().getTier());
 
-    // Second upgrade to mighty: needs 2 ore + 1 wool. The remaining ore (0)
-    // and wool (0) means the player cannot afford the mighty cost as-is.
+    // Second upgrade to mighty: needs 1 ore + 1 wool. The remaining ore (0)
+    // and wool (0) means the player cannot afford it yet.
     Map<Integer, ActionResponse> rejected = new UpgradeKnight(ref, p0,
         knightAt.getPosition()).execute();
     assertFalse(rejected.get(p0).getSuccess());
     assertEquals(2, knightAt.getKnight().getTier());
 
-    // Add 2 ore + 1 wool so the mighty cost is now paid in full.
-    pa.addResource(Resource.ORE, 2);
+    // Add 1 ore + 1 wool so the mighty cost is now paid in full.
+    pa.addResource(Resource.ORE, 1);
     pa.addResource(Resource.SHEEP, 1);
     new UpgradeKnight(ref, p0, knightAt.getPosition()).execute();
     assertEquals(Settings.MAX_KNIGHT_TIER, knightAt.getKnight().getTier());
