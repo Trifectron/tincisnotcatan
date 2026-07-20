@@ -383,48 +383,89 @@ public class MasterReferee implements Referee {
 
   @Override
   public boolean hasLongestRoad(int id) {
-    if (_longestRoad == null) {
-      int max = 0;
-      for (Player p : _players.values()) {
-        int longestPath = _board.longestPath(p);
-        if (longestPath > max && longestPath >= Settings.LONGEST_ROAD_THRESH) {
-          max = longestPath;
-          _longestRoad = p;
-        }
+    // Per the rulebook: the holder retains the bonus while they remain
+    // tied for the longest road. They lose it only when another player
+    // strictly surpasses them, OR when their own road drops below
+    // LONGEST_ROAD_THRESH.
+    int holderLength = _longestRoad != null
+        ? _board.longestPath(_longestRoad) : 0;
+    if (_longestRoad != null && holderLength < Settings.LONGEST_ROAD_THRESH) {
+      _longestRoad = null;
+      holderLength = 0;
+    }
+    int maxLength = holderLength;
+    Player maxPlayer = _longestRoad == null ? null : _longestRoad;
+    boolean incumbentTied = false;
+    for (Player p : _players.values()) {
+      if (p == _longestRoad) {
+        continue;
       }
-    } else {
-      int toBeat = _board.longestPath(_longestRoad);
-      for (Player p : _players.values()) {
-        int longestPath = _board.longestPath(p);
-        if (longestPath > toBeat) {
-          toBeat = longestPath;
-          _longestRoad = p;
-        }
+      int len = _board.longestPath(p);
+      if (len > maxLength) {
+        maxLength = len;
+        maxPlayer = p;
+        incumbentTied = false;
+      } else if (len == maxLength
+          && maxLength >= Settings.LONGEST_ROAD_THRESH) {
+        // Another player matches the current leader — the incumbent keeps
+        // the bonus in a tie per the rulebook, but we record the tie so the
+        // incumbent is not replaced by iteration order on a later call.
+        incumbentTied = true;
       }
+    }
+    if (maxLength < Settings.LONGEST_ROAD_THRESH) {
+      _longestRoad = null;
+      return false;
+    }
+    if (incumbentTied && _longestRoad != null) {
+      // Incumbent stays.
+      _longestRoad = _longestRoad;
+    } else if (maxPlayer != null) {
+      _longestRoad = maxPlayer;
     }
     return _longestRoad != null ? _longestRoad.getID() == id : false;
   }
 
   @Override
   public boolean hasLargestArmy(int id) {
+    // Same tie/incumbent/threshold rules as hasLongestRoad.
     Player player = getPlayerByID(id);
-    int maxArmy = _largestArmy != null ? _largestArmy.numPlayedKnights() : 0;
-    Player maxPlayer = null;
+    int holderCount = _largestArmy != null ? _largestArmy.numPlayedKnights() : 0;
+    if (_largestArmy != null
+        && holderCount < Settings.LARGEST_ARMY_THRESH) {
+      _largestArmy = null;
+      holderCount = 0;
+    }
+    int maxCount = holderCount;
+    Player maxPlayer = _largestArmy;
+    boolean incumbentTied = false;
     for (Player p : _players.values()) {
-      if (p.numPlayedKnights() > maxArmy) {
-        maxArmy = p.numPlayedKnights();
+      if (p == _largestArmy) {
+        continue;
+      }
+      int count = p.numPlayedKnights();
+      if (count > maxCount) {
+        maxCount = count;
         maxPlayer = p;
+        incumbentTied = false;
+      } else if (count == maxCount
+          && maxCount >= Settings.LARGEST_ARMY_THRESH) {
+        incumbentTied = true;
       }
     }
-    if (maxArmy >= Settings.LARGEST_ARMY_THRESH && maxPlayer != null
-        && maxPlayer.equals(player)) {
+    if (maxCount < Settings.LARGEST_ARMY_THRESH) {
+      _largestArmy = null;
+      return false;
+    }
+    if (incumbentTied && _largestArmy != null) {
+      _largestArmy = _largestArmy;
+    } else if (maxPlayer != null) {
       _largestArmy = maxPlayer;
-      return true;
     }
-    if (_largestArmy != null && player.equals(_largestArmy)) {
-      return true;
+    if (_largestArmy == null) {
+      return false;
     }
-    return false;
+    return _largestArmy.getID() == id;
   }
 
   @Override
