@@ -12,7 +12,6 @@ import com.google.gson.JsonObject;
 import edu.brown.cs.board.HexCoordinate;
 import edu.brown.cs.board.Intersection;
 import edu.brown.cs.board.IntersectionCoordinate;
-import edu.brown.cs.catan.Commodity;
 import edu.brown.cs.catan.Player;
 import edu.brown.cs.catan.Referee;
 import edu.brown.cs.catan.Resource;
@@ -84,7 +83,8 @@ public class PlaceInitialSettlement implements FollowUpAction {
       HexCoordinate coord2 = _intersection.getPosition().getCoord2();
       HexCoordinate coord3 = _intersection.getPosition().getCoord3();
       List<Resource> resToAdd = new ArrayList<>();
-      List<Commodity> commoditiesToAdd = new ArrayList<>();
+      // A settlement (including this initial one) only ever produces
+      // resources; only cities produce commodities.
       _ref.getBoard()
           .getTiles()
           .forEach(
@@ -95,26 +95,10 @@ public class PlaceInitialSettlement implements FollowUpAction {
                   if (tile.getType().getType() != null) {
                     resToAdd.add(tile.getType().getType());
                   }
-                  // Cities & Knights: ore/wool/lumber hexes also yield a
-                  // commodity per the rulebook (paper, cloth, coin).
-                  // tile.getType().getType() can be null for non-producing
-                  // hexes (desert, sea, gold), so guard before deriving
-                  // the commodity.
-                  Resource hexResource = tile.getType().getType();
-                  Commodity commodity =
-                      hexResource == null ? null : Commodity.fromResource(
-                          hexResource);
-                  if (_ref.getGameSettings().isCitiesAndKnights
-                      && commodity != null) {
-                    commoditiesToAdd.add(commodity);
-                  }
                 }
               });
       resToAdd.forEach((res) -> {
         player.addResource(res, 1, _ref.getBank());
-      });
-      commoditiesToAdd.forEach((c) -> {
-        player.addCommodity(c, 1);
       });
       break;
     default:

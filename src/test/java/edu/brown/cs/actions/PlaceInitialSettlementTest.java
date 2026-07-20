@@ -72,10 +72,11 @@ public class PlaceInitialSettlementTest {
         p.getCommodities().getOrDefault(Commodity.COIN, 0.0), 0.0001);
   }
 
-  // Cities & Knights: second-initial-settlement on a hex that produces
-  // both a resource AND a commodity must credit both, per the rulebook.
+  // Cities & Knights: only cities produce commodities -- a settlement
+  // (including this initial one) never does, even on a hex that would
+  // yield a commodity if it were upgraded to a city.
   @Test
-  public void secondSettlementYieldsCommodityInCitiesAndKnights() {
+  public void secondSettlementHasNoCommodityYieldInCitiesAndKnights() {
     MasterReferee ref = baseRef(true);
     int p0 = ref.addPlayer("Tester", "Red");
     Player p = ref.getPlayerByID(p0);
@@ -91,7 +92,8 @@ public class PlaceInitialSettlementTest {
     assertTrue(resp.get(p0).getSuccess());
 
     assertTrue(p.getResources().getOrDefault(Resource.ORE, 0.0) >= 1.0);
-    assertTrue(p.getCommodities().getOrDefault(Commodity.COIN, 0.0) >= 1.0);
+    assertEquals(0.0,
+        p.getCommodities().getOrDefault(Commodity.COIN, 0.0), 0.0001);
   }
 
   private static JsonObject serialize(Intersection i) {
