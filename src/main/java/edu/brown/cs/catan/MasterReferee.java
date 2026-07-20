@@ -374,89 +374,64 @@ public class MasterReferee implements Referee {
 
   @Override
   public boolean hasLongestRoad(int id) {
-    // Per the rulebook: the holder retains the bonus while they remain
-    // tied for the longest road. They lose it only when another player
-    // strictly surpasses them, OR when their own road drops below
-    // LONGEST_ROAD_THRESH.
-    int holderLength = _longestRoad != null
-        ? _board.longestPath(_longestRoad) : 0;
-    if (_longestRoad != null && holderLength < Settings.LONGEST_ROAD_THRESH) {
-      _longestRoad = null;
-      holderLength = 0;
-    }
-    int maxLength = holderLength;
-    Player maxPlayer = _longestRoad == null ? null : _longestRoad;
-    boolean incumbentTied = false;
+    // The incumbent retains the bonus while tied for the longest road;
+    // a brand-new tie among challengers (no incumbent among the leaders)
+    // awards no one, matching this codebase's BarbarianAttack tie rule.
+    Player incumbent = _longestRoad;
+    int maxLength = 0;
+    List<Player> leaders = new ArrayList<>();
     for (Player p : _players.values()) {
-      if (p == _longestRoad) {
-        continue;
-      }
       int len = _board.longestPath(p);
       if (len > maxLength) {
         maxLength = len;
-        maxPlayer = p;
-        incumbentTied = false;
-      } else if (len == maxLength
-          && maxLength >= Settings.LONGEST_ROAD_THRESH) {
-        // Another player matches the current leader — the incumbent keeps
-        // the bonus in a tie per the rulebook, but we record the tie so the
-        // incumbent is not replaced by iteration order on a later call.
-        incumbentTied = true;
+        leaders.clear();
+        leaders.add(p);
+      } else if (len == maxLength) {
+        leaders.add(p);
       }
     }
     if (maxLength < Settings.LONGEST_ROAD_THRESH) {
       _longestRoad = null;
       return false;
     }
-    if (incumbentTied && _longestRoad != null) {
-      // Incumbent stays.
-      _longestRoad = _longestRoad;
-    } else if (maxPlayer != null) {
-      _longestRoad = maxPlayer;
+    if (leaders.size() == 1) {
+      _longestRoad = leaders.get(0);
+    } else if (incumbent != null && leaders.contains(incumbent)) {
+      _longestRoad = incumbent;
+    } else {
+      _longestRoad = null;
     }
-    return _longestRoad != null ? _longestRoad.getID() == id : false;
+    return _longestRoad != null && _longestRoad.getID() == id;
   }
 
   @Override
   public boolean hasLargestArmy(int id) {
     // Same tie/incumbent/threshold rules as hasLongestRoad.
-    Player player = getPlayerByID(id);
-    int holderCount = _largestArmy != null ? _largestArmy.numPlayedKnights() : 0;
-    if (_largestArmy != null
-        && holderCount < Settings.LARGEST_ARMY_THRESH) {
-      _largestArmy = null;
-      holderCount = 0;
-    }
-    int maxCount = holderCount;
-    Player maxPlayer = _largestArmy;
-    boolean incumbentTied = false;
+    Player incumbent = _largestArmy;
+    int maxCount = 0;
+    List<Player> leaders = new ArrayList<>();
     for (Player p : _players.values()) {
-      if (p == _largestArmy) {
-        continue;
-      }
       int count = p.numPlayedKnights();
       if (count > maxCount) {
         maxCount = count;
-        maxPlayer = p;
-        incumbentTied = false;
-      } else if (count == maxCount
-          && maxCount >= Settings.LARGEST_ARMY_THRESH) {
-        incumbentTied = true;
+        leaders.clear();
+        leaders.add(p);
+      } else if (count == maxCount) {
+        leaders.add(p);
       }
     }
     if (maxCount < Settings.LARGEST_ARMY_THRESH) {
       _largestArmy = null;
       return false;
     }
-    if (incumbentTied && _largestArmy != null) {
-      _largestArmy = _largestArmy;
-    } else if (maxPlayer != null) {
-      _largestArmy = maxPlayer;
+    if (leaders.size() == 1) {
+      _largestArmy = leaders.get(0);
+    } else if (incumbent != null && leaders.contains(incumbent)) {
+      _largestArmy = incumbent;
+    } else {
+      _largestArmy = null;
     }
-    if (_largestArmy == null) {
-      return false;
-    }
-    return _largestArmy.getID() == id;
+    return _largestArmy != null && _largestArmy.getID() == id;
   }
 
   @Override

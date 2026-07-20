@@ -302,6 +302,37 @@ public class MasterRefereeTest {
     Player p2 = ref.getPlayerByID(id2);
     for (int i = 0; i < 3; i++) {
       p1.addDevelopmentCard(DevelopmentCard.KNIGHT);
+    }
+    p1.playDevelopmentCard(DevelopmentCard.KNIGHT);
+    p1.playDevelopmentCard(DevelopmentCard.KNIGHT);
+    p1.playDevelopmentCard(DevelopmentCard.KNIGHT);
+    // p1 is the first holder.
+    assertTrue(ref.hasLargestArmy(id1));
+    assertFalse(ref.hasLargestArmy(id2));
+
+    // p2 strictly outranks p1 -- the bonus moves to p2.
+    for (int i = 0; i < 4; i++) {
+      p2.addDevelopmentCard(DevelopmentCard.KNIGHT);
+    }
+    p2.playDevelopmentCard(DevelopmentCard.KNIGHT);
+    p2.playDevelopmentCard(DevelopmentCard.KNIGHT);
+    p2.playDevelopmentCard(DevelopmentCard.KNIGHT);
+    p2.playDevelopmentCard(DevelopmentCard.KNIGHT);
+    assertFalse(ref.hasLargestArmy(id1));
+    assertTrue(ref.hasLargestArmy(id2));
+  }
+
+  // A fresh tie with no existing incumbent awards the bonus to no one,
+  // matching this codebase's BarbarianAttack tie rule.
+  @Test
+  public void largestArmyFreshTieWithNoIncumbentAwardsNoOne() {
+    Referee ref = new MasterReferee();
+    int id1 = ref.addPlayer("p1", "color");
+    int id2 = ref.addPlayer("p2", "color");
+    Player p1 = ref.getPlayerByID(id1);
+    Player p2 = ref.getPlayerByID(id2);
+    for (int i = 0; i < 3; i++) {
+      p1.addDevelopmentCard(DevelopmentCard.KNIGHT);
       p2.addDevelopmentCard(DevelopmentCard.KNIGHT);
     }
     p1.playDevelopmentCard(DevelopmentCard.KNIGHT);
@@ -310,8 +341,7 @@ public class MasterRefereeTest {
     p2.playDevelopmentCard(DevelopmentCard.KNIGHT);
     p2.playDevelopmentCard(DevelopmentCard.KNIGHT);
     p2.playDevelopmentCard(DevelopmentCard.KNIGHT);
-    // p1 is the first holder.
-    assertTrue(ref.hasLargestArmy(id1));
+    assertFalse(ref.hasLargestArmy(id1));
     assertFalse(ref.hasLargestArmy(id2));
   }
 }
