@@ -59,9 +59,10 @@ public class ProgressCardTest {
         ProgressCardType.ROAD_BUILDING), drawn);
     assertNull(science.draw());
 
-    // 9 politics card types, 2 copies each = 18 cards.
+    // 9 politics card types: Spy has 3 copies (per the official rulebook),
+    // the other 8 have 2 copies each = 19 cards.
     ProgressCardDeck politics = new ProgressCardDeck(CityImprovement.POLITICS);
-    assertEquals(18, politics.size());
+    assertEquals(19, politics.size());
     Set<ProgressCardType> drawnPolitics = new HashSet<>();
     while (!politics.isEmpty()) {
       drawnPolitics.add(politics.draw());

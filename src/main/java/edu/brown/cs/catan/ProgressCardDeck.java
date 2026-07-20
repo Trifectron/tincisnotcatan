@@ -47,10 +47,12 @@ public class ProgressCardDeck {
   /**
    * How many copies of this card the deck should hold, per the official
    * Cities & Knights multiplicity rule. Defaults to 2 for every card; cards
-   * that the printed rules ship with a different count override here.
+   * that the printed rules ship with a different count override here. The
+   * real deck has 3 copies of Spy and 2 of every other card.
    */
   private static int deckMultiplicity(ProgressCardType card) {
-    Map<ProgressCardType, Integer> overrides = ImmutableMap.of();
+    Map<ProgressCardType, Integer> overrides = ImmutableMap.of(
+        ProgressCardType.SPY, 3);
     Integer special = overrides.get(card);
     return special != null ? special : 2;
   }

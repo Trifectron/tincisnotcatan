@@ -37,11 +37,11 @@ public class ProgressDeckDrawTest {
         ProgressCardType.ROAD_BUILDING),
         drawnScience);
     assertNull(ref.drawProgressCard(CityImprovement.SCIENCE));
-    // The Politics deck holds 2 copies each of Constitution, Intrigue,
-    // Wedding, Bishop, Diplomat, Deserter, Saboteur, Spy, and Warlord (18
-    // cards total).
+    // The Politics deck holds 3 copies of Spy and 2 copies each of
+    // Constitution, Intrigue, Wedding, Bishop, Diplomat, Deserter,
+    // Saboteur, and Warlord (19 cards total), per the official rulebook.
     Set<ProgressCardType> drawnPolitics = new HashSet<>();
-    for (int i = 0; i < 18; i++) {
+    for (int i = 0; i < 19; i++) {
       drawnPolitics.add(ref.drawProgressCard(CityImprovement.POLITICS));
     }
     assertEquals(EnumSet.of(ProgressCardType.CONSTITUTION,
