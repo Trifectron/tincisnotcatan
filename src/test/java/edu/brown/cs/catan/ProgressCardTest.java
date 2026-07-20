@@ -1349,17 +1349,17 @@ public class ProgressCardTest {
     assertTrue(msg.contains("no player has as many victory points"));
   }
 
-  // Per the Mayfair rulebook, Saboteur discards half rounded UP (so 3 cards
-  // means drop 2), with a minimum of 1 for any player holding at least one
-  // card. Verify by reading the queued DropCards follow-up's payload.
+  // Per the official rulebook, Saboteur discards half your cards, rounded
+  // DOWN (so 3 cards means drop 1). Verify by reading the queued DropCards
+  // follow-up's payload.
   @Test
-  public void saboteurRoundsDiscardUpAndAppliesAMinimumOfOne() {
+  public void saboteurRoundsDiscardDown() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");
     int p1 = ref.addPlayer("B", "#111111");
     Player pa = ref.getPlayerByID(p0);
     Player pb = ref.getPlayerByID(p1);
-    // 3 cards -> ceil(3/2) = 2 (was floor -> 1).
+    // 3 cards -> floor(3/2) = 1.
     pb.addResource(Resource.WHEAT, 3, ref.getBank());
 
     ProgressCardType.SABOTEUR.play(ref, pa);
@@ -1367,7 +1367,22 @@ public class ProgressCardTest {
     FollowUpAction fu = ref.getNextFollowUp(p1);
     assertNotNull(fu);
     com.google.gson.JsonObject data = fu.getData();
-    assertEquals(2.0, data.get("numToDrop").getAsDouble(), 0.0001);
+    assertEquals(1.0, data.get("numToDrop").getAsDouble(), 0.0001);
+  }
+
+  // A player with exactly 1 card rounds down to 0 -- no discard needed.
+  @Test
+  public void saboteurNeedsNoDiscardWithASingleCard() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+    pb.addResource(Resource.WHEAT, 1, ref.getBank());
+
+    ProgressCardType.SABOTEUR.play(ref, pa);
+
+    assertNull(ref.getNextFollowUp(p1));
   }
 
   @Test

@@ -507,10 +507,12 @@ public enum ProgressCardType {
         continue;
       }
       double hasCards = other.getNumResourceCards();
-      if (hasCards <= 0) {
-        continue; // already empty-handed, no discard needed.
+      // Official rule: discard half your cards, rounded down. A hand of 1
+      // rounds down to 0 -- no discard needed.
+      double numToDrop = Math.floor(hasCards / 2.0);
+      if (numToDrop <= 0) {
+        continue;
       }
-      double numToDrop = Math.max(1, Math.ceil(hasCards / 2.0));
       followUps.add(new DropCards(other.getID(), numToDrop));
       affected++;
     }
@@ -520,7 +522,7 @@ public enum ProgressCardType {
     return affected > 0
         ? String.format(
             "You played Saboteur. %d player(s) must discard half their "
-                + "cards (rounded up).", affected)
+                + "cards (rounded down).", affected)
         : "You played Saboteur but no player has as many victory points as "
             + "you.";
   }),
