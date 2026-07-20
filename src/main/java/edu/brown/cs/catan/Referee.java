@@ -77,12 +77,33 @@ public interface Referee {
 
   /**
    * Grants the current player a 2:1 bank rate on the given resource for the
-   * rest of this turn (Cities &amp; Knights Merchant Fleet progress card).
+   * rest of this turn (Cities & Knights Merchant Fleet progress card).
    *
    * @param res
    *          The resource to grant a 2:1 rate on.
    */
   void setMerchantFleetResource(Resource res);
+
+  /**
+   * Records the dice value the current player's Alchemist card will force.
+   * The matching RollDice.execute() then consults this value instead of the
+   * RNG (Cities & Knights rulebook: Alchemist is "played before rolling
+   * dice; pick a value from 2-12"). The referee stores this on its *real*
+   * turn rather than a defensive copy so the value survives until that
+   * roll happens.
+   *
+   * @param roll the forced roll (2-12)
+   */
+  void setAlchemisedRoll(int roll);
+
+  /**
+   * @return the dice value the current player's Alchemist card has forced
+   *         for the upcoming roll, or null if no Alchemist was played or it
+   *         has already been consumed. Reflects the value on the real
+   *         internal turn (not a defensive copy), so callers and tests can
+   *         observe what RollDice.execute() will see.
+   */
+  Integer getAlchemisedRoll();
 
   Board getBoard();
 

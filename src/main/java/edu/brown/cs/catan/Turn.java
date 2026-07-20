@@ -23,6 +23,10 @@ public class Turn {
   private List<Collection<FollowUpAction>> _followUps;
   private Map<DevelopmentCard, Integer> _initialDevCardHand;
   private Resource _merchantFleetResource;
+  // Cities & Knights Alchemist: when the player plays Alchemist *before*
+  // rolling, the dice roll for this turn is forced. Null when no
+  // Alchemist has been played this turn.
+  private Integer _alchemisedRoll;
 
   /**
    * Creates a Turn.
@@ -182,6 +186,30 @@ public class Turn {
    */
   public Resource getMerchantFleetResource() {
     return _merchantFleetResource;
+  }
+
+  /**
+   * Stores the dice value this turn's Alchemist card forced. Called when
+   * the player plays Alchemist before rolling. A subsequent
+   * {@link edu.brown.cs.actions.RollDice} for this turn should pick this
+   * value up instead of calling the RNG. Cities & Knights rulebook:
+   * Alchemist is played "before rolling dice; pick a value from 2-12".
+   *
+   * @param roll the forced roll (2-12)
+   */
+  public void setAlchemisedRoll(int roll) {
+    if (roll < 2 || roll > 12) {
+      throw new IllegalArgumentException("roll must be 2-12, got " + roll);
+    }
+    _alchemisedRoll = roll;
+  }
+
+  /**
+   * @return the Alchemist-forced roll for this turn, or null if Alchemist
+   *         was not played (or was never relevant).
+   */
+  public Integer getAlchemisedRoll() {
+    return _alchemisedRoll;
   }
 
 }

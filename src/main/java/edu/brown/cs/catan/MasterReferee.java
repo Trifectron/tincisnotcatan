@@ -557,6 +557,16 @@ public class MasterReferee implements Referee {
   }
 
   @Override
+  public void setAlchemisedRoll(int roll) {
+    _turn.setAlchemisedRoll(roll);
+  }
+
+  @Override
+  public Integer getAlchemisedRoll() {
+    return _turn.getAlchemisedRoll();
+  }
+
+  @Override
   public int addPlayer(String name) {
     return addPlayer(name, _gameSettings.COLORS[_players.size()]);
   }
@@ -736,6 +746,17 @@ public class MasterReferee implements Referee {
     public void setMerchantFleetResource(Resource res) {
       throw new UnsupportedOperationException(
           "A ReadOnlyReferee cannot set the Merchant Fleet resource.");
+    }
+
+    @Override
+    public void setAlchemisedRoll(int roll) {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyReferee cannot set the Alchemist roll.");
+    }
+
+    @Override
+    public Integer getAlchemisedRoll() {
+      return _referee.getAlchemisedRoll();
     }
 
     @Override

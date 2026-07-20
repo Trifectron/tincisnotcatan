@@ -79,7 +79,29 @@ public class RollDice implements FollowUpAction {
     Random r = new Random();
     PrimitiveIterator.OfInt rolls = r.ints(1, 7).iterator();
     int redDie = rolls.nextInt();
-    int diceRoll = _forcedRoll != null ? _forcedRoll : redDie + rolls.nextInt();
+    // Cities & Knights Alchemist: if the player played Alchemist before
+    // rolling this turn, the chosen value overrides any random 2d6. We
+    // always physically roll the event/red die so its side effect
+    // (progress cards on 0/yellow, etc.) still fires naturally.
+    int yellowDie = rolls.nextInt();
+    int diceRoll;
+    if (_forcedRoll != null) {
+      diceRoll = _forcedRoll;
+    } else {
+      int currentPlayerID = (_ref.currentPlayer() == null) ? -1
+          : _ref.currentPlayer().getID();
+      if (currentPlayerID == _playerID
+          && _ref.getGameSettings().isCitiesAndKnights) {
+        Integer alchemised = _ref.getAlchemisedRoll();
+        if (alchemised != null) {
+          diceRoll = alchemised;
+        } else {
+          diceRoll = redDie + yellowDie;
+        }
+      } else {
+        diceRoll = redDie + yellowDie;
+      }
+    }
     _ref.getGameStats().addRoll(diceRoll);
     Map<Integer, Map<Resource, Integer>> playerResourceCount = new HashMap<>();
     Map<Integer, ActionResponse> toRet = new HashMap<>();

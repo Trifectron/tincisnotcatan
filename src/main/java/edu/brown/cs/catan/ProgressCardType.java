@@ -109,7 +109,13 @@ public enum ProgressCardType {
   }),
 
   // Alchemist's target is the roll total to use instead of a random roll,
-  // e.g. "8". Played after rolling but before production is resolved.
+  // e.g. "8". Cities & Knights rulebook: "Played before rolling dice; pick
+  // a value from 2-12." So either the player is sitting on their turn with
+  // no roll yet (pre-roll case -> store the forced roll on the Turn; the
+  // next RollDice.execute() for this turn will pick it up so the actual
+  // production happens through normal channels), or production is already
+  // pending (Ride-or-post case -> the previously-queued RollDice for the
+  // player can be forced and executed immediately).
   ALCHEMIST(CityImprovement.SCIENCE, "Alchemist", (ref, player, target) -> {
     int roll;
     try {
@@ -121,15 +127,27 @@ public enum ProgressCardType {
       return "You played Alchemist but named a roll outside 2-12.";
     }
     FollowUpAction pending = ref.getNextFollowUp(player.getID());
-    if (!(pending instanceof RollDice)) {
-      return "You played Alchemist but it isn't time to roll the dice.";
+    if (pending instanceof RollDice) {
+      RollDice rollAction = (RollDice) pending;
+      rollAction.setupAction(ref, player.getID(), new JsonObject());
+      rollAction.forceRoll(roll);
+      rollAction.execute();
+      return String.format(
+          "You played Alchemist and forced the dice to produce %d.", roll);
     }
-    RollDice rollAction = (RollDice) pending;
-    rollAction.setupAction(ref, player.getID(), new JsonObject());
-    rollAction.forceRoll(roll);
-    rollAction.execute();
+    // Pre-roll case: stash the forced roll on the current Turn so the
+    // upcoming RollDice.execute() will consume it rather than calling
+    // the RNG (Cities & Knights rulebook: Alchemist is "played before
+    // rolling dice; pick a value from 2-12"). We do not gate on the
+    // caller's identity here — the player playing the card is the one
+    // whose dice will be forced; RollDice will only honour the flag
+    // when its own player-ID matches the current player at execution
+    // time, so a card played by a non-current player can't be smuggled
+    // across turns.
+    ref.setAlchemisedRoll(roll);
     return String.format(
-        "You played Alchemist and forced the dice to produce %d.", roll);
+        "You played Alchemist; the next dice roll you make will produce %d.",
+        roll);
   }),
 
   // Crane's target is the name of an improvement track ("trade", "politics",

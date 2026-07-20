@@ -988,12 +988,45 @@ public class ProgressCardTest {
   @Test
   public void alchemistNoOpWithoutAPendingRoll() {
     MasterReferee ref = cnkReferee();
-    int p0 = ref.addPlayer("A", "#000000");
-    Player pa = ref.getPlayerByID(p0);
+    ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    // Play as whoever actually has the turn (turn order is shuffled).
+    Player current = ref.currentPlayer();
 
-    String msg = ProgressCardType.ALCHEMIST.play(ref, pa, "9");
-    assertTrue(msg.contains("isn't time to roll"));
+    String msg = ProgressCardType.ALCHEMIST.play(ref, current, "9");
+    // Cities & Knights rulebook: Alchemist is "played before rolling
+    // dice; pick a value from 2-12." So even with no RollDice queued,
+    // Alchemist pre-records the rolled value for the next roll this
+    // player makes instead of erroring out.
+    assertTrue(msg.contains("9"));
+    assertEquals(Integer.valueOf(9), ref.getAlchemisedRoll());
   }
+
+  // Cities & Knights: when a player plays Alchemist before rolling and
+  // then triggers RollDice, the next RollDice for that player must use
+  // the alchemist-picked value instead of a random 2d6.
+  @Test
+  public void rollDiceHonoursAlchemistOverride() {
+    MasterReferee ref = cnkReferee();
+    ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    Player current = ref.currentPlayer();
+    int forced = 9;
+    int before = ref.getGameStats().getRollsArray()[forced - 2];
+    ref.setAlchemisedRoll(forced);
+    ref.addFollowUp(
+        ImmutableList.of(new RollDice(current.getID())));
+
+    RollDice rd = new RollDice(current.getID());
+    rd.setupAction(ref, current.getID(), new JsonObject());
+    rd.execute();
+
+    int after = ref.getGameStats().getRollsArray()[forced - 2];
+    assertEquals(before + 1, after);
+  }
+
+
+
 
   private static String intersectionTarget(IntersectionCoordinate coord) {
     return String.format("%d,%d,%d|%d,%d,%d|%d,%d,%d",
