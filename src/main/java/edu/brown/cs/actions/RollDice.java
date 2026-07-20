@@ -224,6 +224,12 @@ public class RollDice implements FollowUpAction {
       }
     } else {
       // 7 is rolled:
+      // Cities & Knights: the robber stays off the board (and is never
+      // queued to move) until the barbarians have reached the island for
+      // the first time -- otherwise this follow-up could never resolve.
+      boolean robberGated = _ref.getGameSettings().isCitiesAndKnights
+          && _ref.getBarbarianTrack() != null
+          && !_ref.getBarbarianTrack().hasEverReachedIsland();
       Map<Integer, Double> playersToDrop = new HashMap<>();
       Map<Integer, JsonObject> jsonToSend = new HashMap<>();
       String message = "7 was rolled.";
@@ -257,10 +263,18 @@ public class RollDice implements FollowUpAction {
         }
         _ref.addFollowUp(followUps);
       } else {
-        ActionResponse respToAll = new ActionResponse(true,
-            "7 was rolled. No one has more than 7 cards.", null);
-        ActionResponse respToPlayer = new ActionResponse(true,
-            "7 was rolled. You get to move the Robber.", null);
+        String allMsg = robberGated
+            ? "7 was rolled. No one has more than 7 cards. The robber "
+                + "stays off the board until the barbarians reach the "
+                + "island."
+            : "7 was rolled. No one has more than 7 cards.";
+        String playerMsg = robberGated
+            ? "7 was rolled. The robber stays off the board until the "
+                + "barbarians reach the island."
+            : "7 was rolled. You get to move the Robber.";
+        ActionResponse respToAll = new ActionResponse(true, allMsg, null);
+        ActionResponse respToPlayer = new ActionResponse(true, playerMsg,
+            null);
         for (Player p : _ref.getPlayers()) {
           if (p.equals(_player)) {
             toRet.put(p.getID(), respToPlayer);
@@ -269,8 +283,11 @@ public class RollDice implements FollowUpAction {
           }
         }
       }
-      // Follow up MoveRobber action:
-      _ref.addFollowUp(ImmutableList.of(new MoveRobber(_player.getID(), false, true)));
+      if (!robberGated) {
+        // Follow up MoveRobber action:
+        _ref.addFollowUp(
+            ImmutableList.of(new MoveRobber(_player.getID(), false, true)));
+      }
     }
     _ref.removeFollowUp(this);
     return toRet;
