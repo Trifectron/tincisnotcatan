@@ -11,6 +11,7 @@ import com.google.gson.JsonObject;
 import edu.brown.cs.catan.GameSettings;
 import edu.brown.cs.catan.MasterReferee;
 import edu.brown.cs.catan.Player;
+import edu.brown.cs.catan.ProgressCardType;
 import edu.brown.cs.catan.Resource;
 import edu.brown.cs.catan.Referee.GameStatus;
 
@@ -130,5 +131,66 @@ public class EndTurnTest {
     assertNotNull("Expected DropCards follow-up to be queued", fu);
     assertEquals("dropCards", fu.getID());
     assertEquals(1.0, fu.getData().get("numToDrop").getAsDouble(), 0.0001);
+  }
+
+  // Cities & Knights: a player must discard down to the 4-progress-card
+  // hand limit at the end of their own turn.
+  @Test
+  public void queuesDropProgressCardsWhenPlayerExceedsHandLimit() {
+    MasterReferee ref = cnkRef();
+    ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    ref.setGameStatus(GameStatus.PROGRESS);
+    Player current = ref.currentPlayer();
+    int currentId = current.getID();
+    current.addProgressCard(ProgressCardType.SPY);
+    current.addProgressCard(ProgressCardType.SPY);
+    current.addProgressCard(ProgressCardType.INTRIGUE);
+    current.addProgressCard(ProgressCardType.WARLORD);
+    current.addProgressCard(ProgressCardType.BISHOP);
+    assertEquals(5, current.getProgressCards().size());
+
+    new EndTurn(ref, currentId).execute();
+
+    FollowUpAction fu = ref.getNextFollowUp(currentId);
+    assertNotNull("Expected a DropProgressCards follow-up to be queued", fu);
+    assertEquals("dropProgressCards", fu.getID());
+    assertEquals(1, fu.getData().get("numToDrop").getAsInt());
+  }
+
+  // No discard is queued at exactly the 4-card progress-card limit.
+  @Test
+  public void noDropProgressCardsFollowUpAtHandLimit() {
+    MasterReferee ref = cnkRef();
+    ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    ref.setGameStatus(GameStatus.PROGRESS);
+    Player current = ref.currentPlayer();
+    int currentId = current.getID();
+    current.addProgressCard(ProgressCardType.SPY);
+    current.addProgressCard(ProgressCardType.INTRIGUE);
+    current.addProgressCard(ProgressCardType.WARLORD);
+    current.addProgressCard(ProgressCardType.BISHOP);
+
+    new EndTurn(ref, currentId).execute();
+
+    FollowUpAction fu = ref.getNextFollowUp(currentId);
+    assertTrue(fu == null || !"dropProgressCards".equals(fu.getID()));
+  }
+
+  // Base-game (non-C&K) games have no progress-card hand limit at all.
+  @Test
+  public void baseGameNeverQueuesDropProgressCards() {
+    MasterReferee ref = baseRef();
+    ref.addPlayer("A", "#000000");
+    ref.addPlayer("B", "#111111");
+    ref.setGameStatus(GameStatus.PROGRESS);
+    Player current = ref.currentPlayer();
+    int currentId = current.getID();
+
+    new EndTurn(ref, currentId).execute();
+
+    FollowUpAction fu = ref.getNextFollowUp(currentId);
+    assertTrue(fu == null || !"dropProgressCards".equals(fu.getID()));
   }
 }

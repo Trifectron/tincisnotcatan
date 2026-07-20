@@ -57,6 +57,17 @@ public class EndTurn implements Action {
       handLimitDrop = new ArrayList<>();
       handLimitDrop.add(new DropCards(_player.getID(), excess));
     }
+    // Cities & Knights: a player may never end their turn holding more than
+    // 4 progress cards.
+    if (_ref.getGameSettings().isCitiesAndKnights
+        && _player.getProgressCards().size() > Settings.PROGRESS_CARD_HAND_LIMIT) {
+      int excess = _player.getProgressCards().size()
+          - Settings.PROGRESS_CARD_HAND_LIMIT;
+      if (handLimitDrop == null) {
+        handLimitDrop = new ArrayList<>();
+      }
+      handLimitDrop.add(new DropProgressCards(_player.getID(), excess));
+    }
 
     _ref.startNextTurn();
     Player nextPlayer = _ref.currentPlayer();
