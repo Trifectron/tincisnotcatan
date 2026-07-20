@@ -163,6 +163,7 @@ function existingGameSelected(caller) {
 	var isDynamic = isDecimal && $("#dynamic-rates-option").hasClass("active");
 	var isStandard = $("#default-board-option").hasClass("active");
 	var isSeafarers = $("#seafarers-option").hasClass("active");
+	var isCitiesAndKnights = $("#cities-knights-option").hasClass("active");
 
 	if (userName == undefined || userName == "") {
 		alert("Please select a username");
@@ -177,6 +178,7 @@ function existingGameSelected(caller) {
 	setCookie("isDynamic", isDynamic);
 	setCookie("isStandard", isStandard);
 	setCookie("isSeafarers", isSeafarers);
+	setCookie("isCitiesAndKnights", isCitiesAndKnights);
 	deleteCookie("USER_ID");
 	return true;
 }
@@ -230,6 +232,7 @@ function startGamePressed() {
 	var isDynamic = isDecimal && $("#dynamic-rates-option").hasClass("active");
 	var isStandard = $("#default-board-option").hasClass("active");
 	var isSeafarers = $("#seafarers-option").hasClass("active");
+	var isCitiesAndKnights = $("#cities-knights-option").hasClass("active");
 
 	if (userName == undefined || userName == "") {
 		alert("Please select a username");
@@ -249,6 +252,7 @@ function startGamePressed() {
 	setCookie("isDynamic", isDynamic);
 	setCookie("isStandard", isStandard);
 	setCookie("isSeafarers", isSeafarers);
+	setCookie("isCitiesAndKnights", isCitiesAndKnights);
 
 	deleteCookie("USER_ID");
 	return true; // will allow the get request to process.
