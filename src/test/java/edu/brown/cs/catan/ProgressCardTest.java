@@ -572,8 +572,28 @@ public class ProgressCardTest {
     assertEquals(4, pa.getProgressCards().size());
   }
 
+  // Master Merchant's VP check is on PUBLIC victory points (settlements,
+  // cities, largest army, longest road) -- the same points visible to
+  // opponents at the table -- not hidden VP progress cards, so tests give
+  // a player an extra public settlement rather than calling
+  // addVictoryPoints (which only affects hidden VP).
+  private static void givePublicVictoryPoint(MasterReferee ref, Player p) {
+    Intersection free = null;
+    for (Intersection i : ref.getBoard().getIntersections().values()) {
+      if (i.getBuilding() == null) {
+        free = i;
+        break;
+      }
+    }
+    free.placeSettlement(p);
+    p.useSettlement();
+  }
+
+  // Official rule: Master Merchant targets an opponent with STRICTLY MORE
+  // victory points than the player, and can take resource OR commodity
+  // cards.
   @Test
-  public void masterMerchantTakesFromThePlayerWithTheMostCards() {
+  public void masterMerchantTakesFromAnOpponentWithMoreVP() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");
     int p1 = ref.addPlayer("B", "#111111");
@@ -581,6 +601,7 @@ public class ProgressCardTest {
     Player pb = ref.getPlayerByID(p1);
 
     pb.addResource(Resource.WHEAT, 5, ref.getBank());
+    givePublicVictoryPoint(ref, pb);
 
     double paBefore = pa.getResources().get(Resource.WHEAT);
     double pbBefore = pb.getResources().get(Resource.WHEAT);
@@ -588,52 +609,63 @@ public class ProgressCardTest {
 
     assertEquals(paBefore + 2, pa.getResources().get(Resource.WHEAT), 0.0001);
     assertEquals(pbBefore - 2, pb.getResources().get(Resource.WHEAT), 0.0001);
-    assertTrue(msg.contains("took 2 resource"));
+    assertTrue(msg.contains("took 2 card"));
   }
 
-  // Master Merchant targets the player with the most victory points, not
-  // the most resource cards. When pb has more public VP than pa, pb is
-  // the victim even though pa has more resource cards.
+  // No card moves at all when no opponent has more VP than the player,
+  // even if that tied/behind opponent is stacked with cards.
   @Test
-  public void masterMerchantTakesFromHighestVPPlayer() {
+  public void masterMerchantTakesNothingWithoutAHigherVPOpponent() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");
     int p1 = ref.addPlayer("B", "#111111");
     Player pa = ref.getPlayerByID(p0);
     Player pb = ref.getPlayerByID(p1);
 
-    // Give pa huge resources so a cards-based rule would pick pa; but
-    // bump pb's public VP instead by adding a settling victory point via
-    // a development card (-- in C&K those don't exist, so we use the
-    // addVictoryPoints helper directly to model "pb has more VP").
     pa.addResource(Resource.WHEAT, 99, ref.getBank());
     pa.addResource(Resource.ORE, 99, ref.getBank());
-    pb.addResource(Resource.WHEAT, 1, ref.getBank());
-    pb.addVictoryPoints(3);
+    pb.addResource(Resource.WHEAT, 5, ref.getBank());
+    // pa and pb are tied at 0 VP -- pb is not a valid target.
 
-    double paBefore = pa.getResources().getOrDefault(Resource.ORE, 0.0);
     double pbBeforeWheat = pb.getResources().getOrDefault(Resource.WHEAT, 0.0);
     String msg = ProgressCardType.MASTER_MERCHANT.play(ref, pa);
 
-    // pb had more public VP, so cards are drawn from pb (only 1 wheat on
-    // pb at most, so we only steal what's there).
-    assertEquals(paBefore, pa.getResources().getOrDefault(Resource.ORE, 0.0),
-        0.0001);
-    // pb lost 1 card (wheat if it was the only one).
-    assertTrue(pbBeforeWheat - pb.getResources().getOrDefault(Resource.WHEAT,
-        0.0) >= 0);
-    assertTrue(msg.contains("highest VP"));
+    assertEquals(pbBeforeWheat, pb.getResources().getOrDefault(Resource.WHEAT,
+        0.0), 0.0001);
+    assertTrue(msg.contains("no other player has more victory points"));
   }
 
   @Test
-  public void masterMerchantTakesZeroWhenVictimHoldsNoResources() {
+  public void masterMerchantCanTakeCommodityCards() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");
-    ref.addPlayer("B", "#111111");
+    int p1 = ref.addPlayer("B", "#111111");
     Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
 
-    // With VP-based victim selection, the other player is still the
-    // victim but holds no resource cards, so the card takes 0 cards.
+    pb.addCommodity(Commodity.PAPER, 3);
+    givePublicVictoryPoint(ref, pb);
+
+    double paBefore = pa.getCommodities().getOrDefault(Commodity.PAPER, 0.0);
+    String msg = ProgressCardType.MASTER_MERCHANT.play(ref, pa);
+
+    assertEquals(paBefore + 2,
+        pa.getCommodities().getOrDefault(Commodity.PAPER, 0.0), 0.0001);
+    assertEquals(1, pb.getCommodities().getOrDefault(Commodity.PAPER, 0.0),
+        0.0001);
+    assertTrue(msg.contains("took 2 card"));
+  }
+
+  @Test
+  public void masterMerchantTakesZeroWhenVictimHoldsNoCards() {
+    MasterReferee ref = cnkReferee();
+    int p0 = ref.addPlayer("A", "#000000");
+    int p1 = ref.addPlayer("B", "#111111");
+    Player pa = ref.getPlayerByID(p0);
+    Player pb = ref.getPlayerByID(p1);
+    givePublicVictoryPoint(ref, pb);
+
+    // The victim has strictly more VP, but holds no cards, so 0 are taken.
     String msg = ProgressCardType.MASTER_MERCHANT.play(ref, pa);
     assertTrue(msg.contains("took 0"));
   }

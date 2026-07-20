@@ -622,47 +622,64 @@ public enum ProgressCardType {
   }),
 
   MASTER_MERCHANT(CityImprovement.TRADE, "Master Merchant", (ref, player, target) -> {
-    // Per the Mayfair rulebook, Master Merchant targets the opponent with
-    // the most victory points (public), not the most resource cards.
-    Player victimVP = null;
+    // Official rule: target an opponent with STRICTLY MORE victory points
+    // than you, then take any 2 resource or commodity cards from their
+    // hand. No UI is wired to let the player choose the victim or the
+    // exact cards, so we auto-pick the highest-VP eligible opponent and
+    // their two largest stacks (across resources and commodities).
+    int myVP = ref.getNumPublicPoints(player.getID());
+    Player victim = null;
     int highestVP = -1;
     for (Player other : ref.getPlayers()) {
       if (other.equals(player)) {
         continue;
       }
       int publicVP = ref.getNumPublicPoints(other.getID());
-      if (victimVP == null || publicVP > highestVP) {
+      if (publicVP > myVP && (victim == null || publicVP > highestVP)) {
         highestVP = publicVP;
-        victimVP = other;
+        victim = other;
       }
     }
-    if (victimVP == null) {
-      return "You played Master Merchant but no other player is holding any "
-          + "victory points.";
+    if (victim == null) {
+      return "You played Master Merchant but no other player has more "
+          + "victory points than you.";
     }
-    Player richest = victimVP;
     int received = 0;
     for (int i = 0; i < 2; i++) {
-      Resource biggest = null;
-      double max = 0;
-      for (Map.Entry<Resource, Double> entry : richest.getResources()
+      Resource biggestResource = null;
+      double maxResource = 0;
+      for (Map.Entry<Resource, Double> entry : victim.getResources()
           .entrySet()) {
-        if (entry.getValue() > max) {
-          max = entry.getValue();
-          biggest = entry.getKey();
+        if (entry.getValue() > maxResource) {
+          maxResource = entry.getValue();
+          biggestResource = entry.getKey();
         }
       }
-      if (biggest == null) {
+      Commodity biggestCommodity = null;
+      double maxCommodity = 0;
+      for (Map.Entry<Commodity, Double> entry : victim.getCommodities()
+          .entrySet()) {
+        if (entry.getValue() > maxCommodity) {
+          maxCommodity = entry.getValue();
+          biggestCommodity = entry.getKey();
+        }
+      }
+      if (biggestResource == null && biggestCommodity == null) {
         break;
       }
-      richest.removeResource(biggest, 1, ref.getBank());
-      player.addResource(biggest, 1, ref.getBank());
+      if (maxResource >= maxCommodity) {
+        victim.removeResource(biggestResource, 1, ref.getBank());
+        player.addResource(biggestResource, 1, ref.getBank());
+      } else {
+        victim.removeCommodity(biggestCommodity, 1);
+        player.addCommodity(biggestCommodity, 1);
+      }
       received++;
     }
     return String.format(
-        "You played Master Merchant and took %d resource card(s) from %s "
-            + "(highest VP).",
-        received, richest.getName());
+        "You played Master Merchant and took %d card(s) from %s "
+            + "(highest VP above yours).",
+        received, victim.getName());
   }),
 
   RESOURCE_MONOPOLY(CityImprovement.TRADE, "Resource Monopoly", (ref, player,
