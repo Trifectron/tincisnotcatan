@@ -21,7 +21,7 @@ public class CityWallTest {
   }
 
   @Test
-  public void cityWallAbsorbsADowngradeHit() {
+  public void cityWallDoesNotProtectAgainstADowngrade() {
     IntersectionCoordinate coord = new IntersectionCoordinate(
         new HexCoordinate(0, 0, 0), new HexCoordinate(1, 0, 0),
         new HexCoordinate(1, 1, 0));
@@ -31,12 +31,11 @@ public class CityWallTest {
     ((City) i.getBuilding()).buildWall();
     assertTrue(((City) i.getBuilding()).hasWall());
 
-    // Barbarian downgrade: a walled city absorbs the hit by losing only its
-    // wall; the city itself remains.
+    // Official rule: a city wall does not protect against a barbarian
+    // attack -- the wall is simply destroyed along with the city.
     boolean downgraded = i.downgradeCity();
-    assertFalse(downgraded);
-    assertTrue(i.getBuilding() instanceof City);
-    assertFalse(((City) i.getBuilding()).hasWall());
+    assertTrue(downgraded);
+    assertTrue(i.getBuilding() instanceof Settlement);
   }
 
   @Test

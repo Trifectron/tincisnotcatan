@@ -42,14 +42,6 @@ public class City implements Building {
     _hasWall = true;
   }
 
-  /**
-   * Destroys this city's wall (Cities & Knights) — e.g. as a buffer against
-   * a barbarian attack. No-op if there is no wall.
-   */
-  public void destroyWall() {
-    _hasWall = false;
-  }
-
   @Override
   public Map<Integer, Map<Resource, Integer>> collectResource(Resource resource) {
     Map<Resource, Integer> resourceCount = new HashMap<Resource, Integer>();

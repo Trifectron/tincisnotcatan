@@ -286,10 +286,10 @@ public class Intersection {
   }
 
   /**
-   * Downgrades a city on this intersection back to a settlement, honoring a
-   * city wall as a buffer against barbarian attacks (Cities & Knights):
-   * if the city has a wall, the wall absorbs this hit and is destroyed
-   * instead of the city being downgraded. Returns whether the city was
+   * Downgrades a city on this intersection back to a settlement. Per the
+   * official Cities & Knights rules, a city wall does NOT protect a city
+   * from a barbarian attack -- if the city is walled, the wall is simply
+   * destroyed along with the downgrade. Returns whether the city was
    * actually downgraded to a settlement. No-op (returns false) if there is
    * no city here at all.
    */
@@ -298,10 +298,6 @@ public class Intersection {
       return false;
     }
     City city = (City) _building;
-    if (city.hasWall()) {
-      city.destroyWall();
-      return false;
-    }
     _building = new Settlement(city.getPlayer());
     return true;
   }

@@ -128,8 +128,10 @@ public class BarbarianTest {
     assertTrue(cityInt.getBuilding() instanceof edu.brown.cs.board.Settlement);
   }
 
+  // Official rule: a city wall does not protect against a barbarian
+  // attack -- the wall is destroyed along with the city being downgraded.
   @Test
-  public void walledCityAbsorbsBarbarianDowngradeInsteadOfCityLoss() {
+  public void walledCityIsDowngradedAndLosesItsWall() {
     MasterReferee ref = cnkReferee();
     int p0 = ref.addPlayer("A", "#000000");
     ref.addPlayer("B", "#111111");
@@ -142,39 +144,10 @@ public class BarbarianTest {
     ((City) cityInt.getBuilding()).buildWall();
     int playerCitiesBefore = pa.numCities();
 
-    // Barbarians win; the only owned city is walled, so the wall absorbs the
-    // hit and the city remains.
     ref.resolveBarbarianAttack();
-    assertTrue(cityInt.getBuilding() instanceof City);
-    assertFalse(((City) cityInt.getBuilding()).hasWall());
-    assertEquals(playerCitiesBefore, pa.numCities());
-  }
-
-  @Test
-  public void barbarianPrefersUnwalledCitiesButFallsBackToWallDestruction() {
-    MasterReferee ref = cnkReferee();
-    int p0 = ref.addPlayer("A", "#000000");
-    ref.addPlayer("B", "#111111");
-    Player pa = ref.getPlayerByID(p0);
-
-    // Build a walled city and an unwalled city on the board so two cities
-    // exist for the weakest defender; place pieces are tracked separately
-    // from the player's available settlement/city counts.
-    Iterator<Intersection> it = ref.getBoard().getIntersections().values()
-        .iterator();
-    Intersection walled = it.next();
-    walled.placeSettlement(pa);
-    walled.placeCity(pa);
-    ((City) walled.getBuilding()).buildWall();
-    Intersection unwalled = it.next();
-    unwalled.placeSettlement(pa);
-    unwalled.placeCity(pa);
-
-    ref.resolveBarbarianAttack();
-    // The unwalled city absorbed the actual downgrade; the walled city is
-    // untouched for this attack (a later attack would destroy its wall).
-    assertTrue(unwalled.getBuilding() instanceof edu.brown.cs.board.Settlement);
-    assertTrue(walled.getBuilding() instanceof City);
-    assertTrue(((City) walled.getBuilding()).hasWall());
+    assertTrue(cityInt.getBuilding() instanceof edu.brown.cs.board.Settlement);
+    // numCities() tracks city PIECES remaining to build; downgrading a
+    // city returns one to the player's supply, so it goes up by 1.
+    assertEquals(playerCitiesBefore + 1, pa.numCities());
   }
 }
