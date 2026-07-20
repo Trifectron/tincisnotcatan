@@ -105,6 +105,13 @@ public interface Referee {
    */
   Integer getAlchemisedRoll();
 
+  /**
+   * Consumes the current player's Alchemist-forced roll so
+   * {@link #getAlchemisedRoll()} reports null for the remainder of the
+   * turn. Called by RollDice.execute() once it has read the forced value.
+   */
+  void clearAlchemisedRoll();
+
   Board getBoard();
 
   Player getPlayerByID(int id);

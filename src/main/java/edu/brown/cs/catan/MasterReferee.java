@@ -527,6 +527,11 @@ public class MasterReferee implements Referee {
   }
 
   @Override
+  public void clearAlchemisedRoll() {
+    _turn.clearAlchemisedRoll();
+  }
+
+  @Override
   public int addPlayer(String name) {
     return addPlayer(name, _gameSettings.COLORS[_players.size()]);
   }
@@ -717,6 +722,12 @@ public class MasterReferee implements Referee {
     @Override
     public Integer getAlchemisedRoll() {
       return _referee.getAlchemisedRoll();
+    }
+
+    @Override
+    public void clearAlchemisedRoll() {
+      throw new UnsupportedOperationException(
+          "A ReadOnlyReferee cannot clear the Alchemist roll.");
     }
 
     @Override

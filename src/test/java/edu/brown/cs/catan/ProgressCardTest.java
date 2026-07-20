@@ -1060,6 +1060,8 @@ public class ProgressCardTest {
 
     int after = ref.getGameStats().getRollsArray()[forced - 2];
     assertEquals(before + 1, after);
+    // The forced roll is consumed -- it must not leak into later queries.
+    assertEquals(null, ref.getAlchemisedRoll());
   }
 
 

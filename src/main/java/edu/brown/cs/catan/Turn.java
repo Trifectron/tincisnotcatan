@@ -212,4 +212,12 @@ public class Turn {
     return _alchemisedRoll;
   }
 
+  /**
+   * Consumes the forced roll so {@link #getAlchemisedRoll()} returns null
+   * for the rest of this turn.
+   */
+  public void clearAlchemisedRoll() {
+    _alchemisedRoll = null;
+  }
+
 }

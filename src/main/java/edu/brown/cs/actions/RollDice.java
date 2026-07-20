@@ -95,6 +95,7 @@ public class RollDice implements FollowUpAction {
         Integer alchemised = _ref.getAlchemisedRoll();
         if (alchemised != null) {
           diceRoll = alchemised;
+          _ref.clearAlchemisedRoll();
         } else {
           diceRoll = redDie + yellowDie;
         }
