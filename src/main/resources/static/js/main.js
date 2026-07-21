@@ -145,7 +145,8 @@ var BUILD_MODE = {
 	KNIGHT_BUILD: 5,
 	KNIGHT_ACTIVATE: 6,
 	KNIGHT_UPGRADE: 7,
-	KNIGHT_MOVE: 8
+	KNIGHT_MOVE: 8,
+	SHIP: 9
 }
 var currentMode = BUILD_MODE.NONE;
 
@@ -492,6 +493,47 @@ function exitRoadMode() {
 	unHighlightRoads();
 }
 
+// Highlight all paths that ships can be built on (Seafarers).
+function highlightShips() {
+	for (var i = 0; i < board.paths.length; i++) {
+		if (board.paths[i].canBuildShip) {
+			board.paths[i].highlightShip();
+		}
+	}
+}
+
+// Enter build ship mode (Seafarers).
+function enterShipMode() {
+	exitBuildMode();
+	currentMode = BUILD_MODE.SHIP;
+
+	var btnElement = $("#ship-build-btn");
+	btnElement.off("click", enterShipMode);
+	btnElement.click(exitShipMode);
+
+	btnElement.removeClass("btn-default");
+	btnElement.addClass("btn-danger");
+	btnElement.val("Cancel Build");
+
+	highlightShips();
+}
+
+// Exit build ship mode (Seafarers).
+function exitShipMode() {
+	currentMode = BUILD_MODE.NONE;
+
+	var btnElement = $("#ship-build-btn");
+	btnElement.off("click", exitShipMode);
+	btnElement.click(enterShipMode);
+
+	btnElement.removeClass("btn-danger");
+	btnElement.addClass("btn-default");
+	btnElement.val("Build Ship");
+
+	// Ships are highlighted via the shared highlighted-path mechanism.
+	unHighlightRoads();
+}
+
 // Exit the current build mode.
 function exitBuildMode() {
 	switch (currentMode) {
@@ -519,6 +561,9 @@ function exitBuildMode() {
 		case BUILD_MODE.KNIGHT_MOVE:
 			exitKnightMoveMode();
 			break;
+		case BUILD_MODE.SHIP:
+			exitShipMode();
+			break;
 		default:
 			break;
 	}
@@ -533,6 +578,7 @@ $("#knight-build-btn").click(function() { enterKnightMode("build"); });
 $("#knight-activate-btn").click(function() { enterKnightMode("activate"); });
 $("#knight-upgrade-btn").click(function() { enterKnightMode("upgrade"); });
 $("#knight-move-btn").click(enterKnightMoveMode);
+$("#ship-build-btn").click(enterShipMode);
 
 // Exit build mode on the following actions
 $("#players-tab-toggle").click(exitBuildMode);
@@ -683,6 +729,79 @@ $("#year-of-plenty-btn").click(function(event) {
 // When year of plenty modal is hidden, reset number inputs
 $("#year-of-plenty-modal").on("hide.bs.modal", function() {
 	$(".yop-number").val("");
+});
+
+//////////////////////////////////////////
+// Gold Resource Modal (Seafarers)
+//////////////////////////////////////////
+
+// The number of resources the player must choose from their gold hexes.
+var goldNumToChoose = 0;
+
+// Calculate the currently input gold resources.
+function calcGoldResources() {
+	var inputs = $(".gold-number");
+	var num = 0;
+
+	inputs.each(function(indx) {
+		var text = $(this).val();
+		num = num + ((text === "") ? 0 : parseFloat(text));
+	});
+
+	return num;
+}
+
+// Open the gold resource choice modal for the given number of resources.
+function openGoldResourceModal(numToChoose) {
+	goldNumToChoose = numToChoose;
+	$(".gold-number").val("0");
+	$(".gold-number").each(function() {
+		$(this).data("oldVal", 0);
+	});
+	$("#gold-modal-count").text(numToChoose);
+	$("#choose-gold-btn").prop("disabled", true);
+	$("#gold-resource-modal").modal("show");
+}
+
+// Cap the gold resource inputs at numToChoose.
+$(".gold-number").change(function(event) {
+	var oldVal = $(this).data("oldVal");
+	var newVal = parseFloat(formatNumber(parseFloat($(this).val())));
+
+	if (oldVal === undefined && calcGoldResources() > goldNumToChoose) {
+		$(this).val("0");
+		$(this).data("oldVal", 0);
+		return;
+	}
+
+	if (isNaN(newVal) || newVal < 0 || calcGoldResources() > goldNumToChoose) {
+		$(this).val(oldVal);
+	} else {
+		$(this).data("oldVal", newVal);
+		$(this).val(newVal);
+	}
+
+	$("#choose-gold-btn").prop("disabled",
+			calcGoldResources() !== goldNumToChoose);
+});
+
+// When the gold confirm button is clicked, send the chosen resources.
+$("#choose-gold-btn").click(function(event) {
+	if (calcGoldResources() === goldNumToChoose) {
+		var inputs = $(".gold-number");
+		var resources = {};
+
+		inputs.each(function(idx) {
+			var num = parseFloat($(this).val());
+			num = (num === num) ? num : 0;
+
+			var res = $(this).attr("res");
+			resources[res] = num;
+		});
+
+		sendChooseGoldResourceAction(resources);
+		$("#gold-resource-modal").modal("hide");
+	}
 });
 
 //////////////////////////////////////////

@@ -29,9 +29,12 @@ function Path(start1, start2, start3, end1, end2, end3) {
 				+ "-to-x-" + this.end.x + "y-" + this.end.y + "z-" + this.end.z).replace(/[.]/g, "_");
 
 	this.containsRoad = false;
+	// Seafarers: a path may instead hold a ship (on water/coastal edges).
+	this.containsShip = false;
 	this.player = null;
 
 	this.canBuildRoad = false;
+	this.canBuildShip = false;
 	this.highlighted = false;
 	
 	$("#board-viewport").append("<div class='path-select' id='" + this.id + "-select'></div>");
@@ -97,6 +100,14 @@ Path.prototype.draw = function(transX, transY, scale) {
 		element.css("width", length);
 		element.css("height", height);
 		element.css("background-color", this.player.color);
+	} else if (this.containsShip) {
+		// Seafarers: draw a ship (styled distinctly from a road via .ship-piece).
+		element.addClass("ship-piece");
+		element.css("transform", "translate(" + x + "px, " + y + "px) "
+				+ "rotate(" + angle + "rad)");
+		element.css("width", length);
+		element.css("height", height);
+		element.css("background-color", this.player.color);
 	}
 
 	// Add selectable area to intersection
@@ -117,6 +128,15 @@ Path.prototype.addRoad = function(player) {
 }
 
 /*
+ * Adds a ship to this path (Seafarers).
+ * @param player - the player who owns this ship
+ */
+Path.prototype.addShip = function(player) {
+	this.containsShip = true;
+	this.player = player;
+}
+
+/*
  * Creates a path click handler.
  */
 Path.prototype.createPathClickHandler = function() {
@@ -130,6 +150,31 @@ Path.prototype.createPathClickHandler = function() {
 			exitBuildMode();
 		}
 	};
+}
+
+/*
+ * Creates a ship-build click handler (Seafarers).
+ */
+Path.prototype.createShipClickHandler = function() {
+	var that = this;
+	return function(event) {
+		sendBuildShipAction(that.originalStart, that.originalEnd);
+		exitBuildMode();
+	};
+}
+
+/*
+ * Highlights this path for ship building (Seafarers).
+ */
+Path.prototype.highlightShip = function() {
+	if (!(this.highlighted)) {
+		this.highlighted = true;
+
+		var select = $("#" + this.id + "-select");
+		select.addClass("highlighted-path");
+
+		select.click(this.createShipClickHandler());
+	}
 }
 
 /*
@@ -173,9 +218,14 @@ function parsePath(pathData) {
 			parseHexCoordinates(end.coord2), parseHexCoordinates(end.coord3));
 
 	path.canBuildRoad = pathData.canBuildRoad;
+	path.canBuildShip = pathData.canBuildShip;
 
-	if (pathData.hasOwnProperty("road")) {
+	if (pathData.hasOwnProperty("road") && pathData.road !== null) {
 		path.addRoad(playersById[pathData.road.player]);
+	}
+
+	if (pathData.hasOwnProperty("ship") && pathData.ship !== null) {
+		path.addShip(playersById[pathData.ship.player]);
 	}
 
 	return path;

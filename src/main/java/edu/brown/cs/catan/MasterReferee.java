@@ -442,7 +442,17 @@ public class MasterReferee implements Referee {
     int cityPoints = CITY_POINT_VAL * (INITIAL_CITIES - player.numCities());
     int roadArmyPts = hasLargestArmy(id) ? LARGEST_ARMY_POINT_VAL : 0;
     roadArmyPts += hasLongestRoad(id) ? LONGEST_ROAD_POINT_VAL : 0;
-    return settlementPoints + cityPoints + roadArmyPts;
+    // Seafarers: bonus points for settlements/cities on non-home islands.
+    int foreignIslandPts = 0;
+    if (_gameSettings.isSeafarers) {
+      for (Intersection i : _board.getIntersections().values()) {
+        Building b = i.getBuilding();
+        if (b != null && b.getPlayer().getID() == id && !i.isHomeIsland()) {
+          foreignIslandPts += Settings.FOREIGN_ISLAND_POINT_VAL;
+        }
+      }
+    }
+    return settlementPoints + cityPoints + roadArmyPts + foreignIslandPts;
   }
 
   @Override

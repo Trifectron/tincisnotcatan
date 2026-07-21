@@ -135,6 +135,19 @@
 							<img src="images/icon-wood.svg" alt="Wood">
 						</div>
 		    		</li>
+		    		<li class="list-group-item" id="ship-build-item" style="display: none;">
+				    	<input type="button" class="btn btn-default build-btn" id="ship-build-btn" value="Build Ship">
+				    	</br>
+				    	<span>1</span>
+				    	<div class="circle build-circle wood-color">
+						<img src="images/icon-wood.svg" alt="Wood">
+						</div>
+						</br>
+						<span>1</span>
+				    	<div class="circle build-circle sheep-color">
+						<img src="images/icon-sheep.svg" alt="Sheep">
+						</div>
+		    		</li>
 		    		<li class="list-group-item">
 				    	<input type="button" id="buy-dev-card-modal-open" class="btn btn-default build-btn" value="Buy Development Card" data-toggle="modal" data-target="#buy-dev-card-modal">
 				    	</br>
@@ -629,6 +642,64 @@
       		<div class="modal-footer">
         		<button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
         		<button type="button" class="btn btn-primary" id="play-yop-btn" disabled="disabled">Play Year of Plenty</button>
+      		</div>
+    	</div>
+	</div>
+</div>
+
+<div class="modal fade" id="gold-resource-modal" tabindex="-1" role="dialog" aria-labelledby="goldResourceLabel" data-backdrop="static" data-keyboard="false">
+	<div class="modal-dialog" role="document">
+		<div class="modal-content">
+      		<div class="modal-header">
+        		<h4 class="modal-title" id="goldResourceLabel">Gold Hex Production</h4>
+      		</div>
+      		<div class="modal-body">
+       			<p>Your gold hexes produced! Choose <span id="gold-modal-count">0</span> resource(s) to add to your hand.</p>
+       			<div class="text-center">
+       				<div class="yop-resource-container">
+		       			<div class="circle yop-circle brick-color">
+							<img src="images/icon-brick.svg" alt="Brick">
+						</div>
+						<div class="text-center">
+				    		<input type="number" class="form-control gold-number" min="0" res="brick">
+				    	</div>
+				    </div>
+				    <div class="yop-resource-container">
+		       			<div class="circle yop-circle wood-color">
+							<img src="images/icon-wood.svg" alt="Wood">
+						</div>
+						<div class="text-center">
+				    		<input type="number" class="form-control gold-number" min="0" res="wood">
+				    	</div>
+				    </div>
+				    <div class="yop-resource-container">
+		       			<div class="circle yop-circle ore-color">
+							<img src="images/icon-ore.svg" alt="Ore">
+						</div>
+						<div class="text-center">
+				    		<input type="number" class="form-control gold-number" min="0" res="ore">
+				    	</div>
+				    </div>
+				    <div class="yop-resource-container">
+		       			<div class="circle yop-circle wheat-color">
+							<img src="images/icon-wheat.svg" alt="Wheat">
+						</div>
+						<div class="text-center">
+				    		<input type="number" class="form-control gold-number" min="0" res="wheat">
+				    	</div>
+				    </div>
+				    <div class="yop-resource-container">
+		       			<div class="circle yop-circle sheep-color">
+							<img src="images/icon-sheep.svg" alt="Sheep">
+						</div>
+						<div class="text-center">
+				    		<input type="number" class="form-control gold-number" min="0" res="sheep">
+				    	</div>
+				    </div>
+			    </div>
+      		</div>
+      		<div class="modal-footer">
+        		<button type="button" class="btn btn-primary" id="choose-gold-btn" disabled="disabled">Collect Resources</button>
       		</div>
     	</div>
 	</div>

@@ -22,6 +22,7 @@ import edu.brown.cs.board.Knight;
 import edu.brown.cs.board.Path;
 import edu.brown.cs.board.Port;
 import edu.brown.cs.board.Road;
+import edu.brown.cs.board.Ship;
 import edu.brown.cs.board.Tile;
 import edu.brown.cs.board.TileType;
 import edu.brown.cs.catan.CityImprovement;
@@ -204,15 +205,23 @@ public class CatanConverter {
     private IntersectionCoordinate start;
     private IntersectionCoordinate end;
     private RoadRaw road;
+    private ShipRaw ship;
     private boolean canBuildRoad;
+    private boolean canBuildShip;
+    private boolean isMaritime;
 
     public PathRaw(Referee ref, Path path, int playerID) {
       start = path.getStart().getPosition();
       end = path.getEnd().getPosition();
       road = path.getRoad() != null ? new RoadRaw(path.getRoad()) : null;
+      ship = path.getShip() != null ? new ShipRaw(path.getShip()) : null;
+      isMaritime = path.isMaritime();
       canBuildRoad = ref.getGameStatus() == GameStatus.SETUP ? path
           .canPlaceSetupRoad(ref.getSetup()) : path.canPlaceRoad(ref
           .getPlayerByID(playerID));
+      // Ships are only buildable during regular play (not initial setup).
+      canBuildShip = ref.getGameStatus() == GameStatus.PROGRESS
+          && path.canPlaceShip(ref.getPlayerByID(playerID));
     }
 
   }
@@ -222,6 +231,14 @@ public class CatanConverter {
 
     public RoadRaw(Road road) {
       player = road.getPlayer().getID();
+    }
+  }
+
+  private static class ShipRaw {
+    private int player;
+
+    public ShipRaw(Ship ship) {
+      player = ship.getPlayer().getID();
     }
   }
 
@@ -318,6 +335,7 @@ public class CatanConverter {
     private int numCities;
     private int numPlayedKnights;
     private int numRoads;
+    private int numShips;
     private boolean longestRoad;
     private boolean largestArmy;
     private int victoryPoints;
@@ -333,6 +351,7 @@ public class CatanConverter {
       numCities = p.numCities();
       numPlayedKnights = p.numPlayedKnights();
       numRoads = p.numRoads();
+      numShips = p.numShips();
       longestRoad = r.hasLongestRoad(p.getID());
       largestArmy = r.hasLargestArmy(p.getID());
       victoryPoints = r.getNumPublicPoints(p.getID());

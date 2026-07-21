@@ -16,6 +16,7 @@ var TILE_TYPE = {
 	SHEEP: 5,
 	DESERT: 6,
 	SEA: 7,
+	// Seafarers expansion tile types:
 	WATER: 8,
 	GOLD: 9,
 	DESERT_ISLAND: 10
@@ -55,8 +56,7 @@ function Tile(coordinates, tileType, number, hasRobber, port) {
 	$("#board-viewport").append("<div class='hexagon-wrapper' id='" + this.id + "-wrapper'>"
 			+ "<div class='hexagon' id='" + this.id + "'></div></div>");
 
-	if (this.tileType === TILE_TYPE.DESERT || this.tileType === TILE_TYPE.DESERT_ISLAND
-			|| this.tileType === TILE_TYPE.GOLD) {
+	if (this.tileType === TILE_TYPE.DESERT) {
 		$("#" + this.id + "-wrapper").append("<div class='circle number-circle desert-circle'></div>");
 	} else if (this.tileType === TILE_TYPE.SEA || this.tileType === TILE_TYPE.WATER) {
 		$("#" + this.id + "-wrapper").append("<div class='circle number-circle sea-circle'></div>");
@@ -107,7 +107,6 @@ Tile.prototype.draw = function(transX, transY, scale) {
 			element.addClass("sheep-color");
 			break;
 		case TILE_TYPE.DESERT:
-		case TILE_TYPE.DESERT_ISLAND:
 			element.addClass("desert-color");
 			break;
 		case TILE_TYPE.GOLD:
@@ -143,7 +142,8 @@ Tile.prototype.draw = function(transX, transY, scale) {
 	numberCircle.css("width", (scale * NUMBER_CIRCLE_SCALE) + "px");
 	numberCircle.css("height", (scale * NUMBER_CIRCLE_SCALE) + "px");
 		
-	if (!(this.tileType === TILE_TYPE.DESERT || this.tileType === TILE_TYPE.SEA)) {
+	if (!(this.tileType === TILE_TYPE.DESERT || this.tileType === TILE_TYPE.SEA
+			|| this.tileType === TILE_TYPE.WATER)) {
 		// Scale and center tile number
 		numberCircle.css("font-size", (scale * NUMBER_SCALE) + "px");
 		numberCircle.children("span").css("line-height", (scale * NUMBER_CIRCLE_SCALE) + "px");		
@@ -253,7 +253,8 @@ Tile.prototype.draw = function(transX, transY, scale) {
  * @return whether this tile can have the robber placed on it
  */
 Tile.prototype.isRobbable = function() {
-	return !(this.tileType === TILE_TYPE.SEA || this.tileType === TILE_TYPE.WATER || this.hasRobber);
+	return !(this.tileType === TILE_TYPE.SEA || this.tileType === TILE_TYPE.WATER
+			|| this.hasRobber);
 }
 
 /*

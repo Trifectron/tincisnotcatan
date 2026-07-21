@@ -18,6 +18,13 @@ public interface Player {
   int numRoads();
 
   /**
+   * Returns the number of ships a player has remaining (Seafarers).
+   *
+   * @return Number of ships remaining.
+   */
+  int numShips();
+
+  /**
    * Returns the number of settlements a player has remaining.
    *
    * @return Number of settlements remaining.
@@ -35,6 +42,11 @@ public interface Player {
    * Removes the resource costs of building a road.
    */
   void buildRoad();
+
+  /**
+   * Removes the resource costs of building a ship (Seafarers).
+   */
+  void buildShip();
 
   /**
    * Removes the resource costs of building a settlement.
@@ -61,6 +73,11 @@ public interface Player {
    * progress card, whose removed road goes back to its owner).
    */
   void returnRoad();
+
+  /**
+   * Uses a Ship piece (Seafarers).
+   */
+  void useShip();
 
   /**
    * Uses a City piece.
@@ -114,6 +131,8 @@ public interface Player {
   boolean canBuyDevelopmentCard();
 
   boolean canBuildRoad();
+
+  boolean canBuildShip();
 
   boolean canBuildCity();
 

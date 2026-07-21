@@ -221,6 +221,27 @@ function sendPlayRoadBuildingAction() {
 	webSocket.send(JSON.stringify(playReq));
 }
 
+// Seafarers: request to build a ship on the path between start and end.
+function sendBuildShipAction(start, end) {
+	var buildReq = {
+		requestType : "action",
+		action : "buildShip",
+		start : start,
+		end : end
+	};
+	webSocket.send(JSON.stringify(buildReq));
+}
+
+// Seafarers: send the resources chosen for a gold hex.
+function sendChooseGoldResourceAction(resources) {
+	var chooseReq = {
+		requestType : "action",
+		action : "chooseGoldResource",
+		resources : resources
+	};
+	webSocket.send(JSON.stringify(chooseReq));
+}
+
 function sendDropCardsAction(toDrop) {
 	var dropReq = {
 		requestType : "action",
@@ -520,6 +541,9 @@ function handleFollowUp(action) {
 	case "tradeResponse":
 		showTradeResponseModal(action.actionData.trade);
 		break;
+	case "chooseGoldResource":
+		openGoldResourceModal(action.actionData.numToChoose);
+		break;
 	default:
 		break;
 	}
@@ -536,6 +560,13 @@ function handleGetGameState(gameStateData) {
 	gameSettings = gameStateData.settings;
 	tradeRates = gameStateData.players[playerId].rates;
 	gameStats = gameStateData.stats;
+
+	// Seafarers: only show the Build Ship button for Seafarers games.
+	if (gameSettings.isSeafarers) {
+		$("#ship-build-item").show();
+	} else {
+		$("#ship-build-item").hide();
+	}
 
 	var activePlayerTab = $("#player-tabs .active").attr("player");
 	openedPlayerTab = (activePlayerTab == undefined) ? 0

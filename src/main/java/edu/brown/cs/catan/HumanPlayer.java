@@ -32,6 +32,7 @@ public class HumanPlayer implements Player {
 
   // Remaining Buildings:
   private int numRoads;
+  private int numShips;
   private int numSettlements;
   private int numCities;
 
@@ -54,6 +55,7 @@ public class HumanPlayer implements Player {
     this.id = id;
     this.color = color;
     this.numRoads = Settings.INITIAL_ROADS;
+    this.numShips = Settings.INITIAL_SHIPS;
     this.numSettlements = Settings.INITIAL_SETTLEMENTS;
     this.numCities = Settings.INITIAL_CITIES;
     numVictoryPoints = 0;
@@ -92,6 +94,11 @@ public class HumanPlayer implements Player {
   }
 
   @Override
+  public int numShips() {
+    return numShips;
+  }
+
+  @Override
   public int numSettlements() {
     return numSettlements;
   }
@@ -119,6 +126,29 @@ public class HumanPlayer implements Player {
       }
     }
     if (numRoads > 0) {
+      return true;
+    }
+    return false;
+  }
+
+  @Override
+  public void buildShip() {
+    // Pay for the ship:
+    for (Map.Entry<Resource, Double> price : Settings.SHIP_COST.entrySet()) {
+      removeResource(price.getKey(), price.getValue());
+    }
+  }
+
+  @Override
+  public boolean canBuildShip() {
+    // Check if the player can pay for the ship:
+    for (Map.Entry<Resource, Double> price : Settings.SHIP_COST.entrySet()) {
+      double result = resources.get(price.getKey()) - price.getValue();
+      if (result < 0) {
+        return false;
+      }
+    }
+    if (numShips > 0) {
       return true;
     }
     return false;
@@ -338,6 +368,12 @@ public class HumanPlayer implements Player {
   }
 
   @Override
+  public void useShip() {
+    assert numShips > 0;
+    numShips--;
+  }
+
+  @Override
   public void useCity() {
     assert numCities > 0;
     assert numSettlements != Settings.INITIAL_SETTLEMENTS;
@@ -476,6 +512,11 @@ public class HumanPlayer implements Player {
     }
 
     @Override
+    public int numShips() {
+      return _player.numShips();
+    }
+
+    @Override
     public int numSettlements() {
       return _player.numSettlements();
     }
@@ -487,6 +528,12 @@ public class HumanPlayer implements Player {
 
     @Override
     public void buildRoad() {
+      throw new UnsupportedOperationException(
+          "Player is immutable and cannot build.");
+    }
+
+    @Override
+    public void buildShip() {
       throw new UnsupportedOperationException(
           "Player is immutable and cannot build.");
     }
@@ -517,6 +564,12 @@ public class HumanPlayer implements Player {
 
     @Override
     public void returnRoad() {
+      throw new UnsupportedOperationException(
+          "Player is immutable and cannot build.");
+    }
+
+    @Override
+    public void useShip() {
       throw new UnsupportedOperationException(
           "Player is immutable and cannot build.");
     }
@@ -628,6 +681,11 @@ public class HumanPlayer implements Player {
     @Override
     public boolean canBuildRoad() {
       return _player.canBuildRoad();
+    }
+
+    @Override
+    public boolean canBuildShip() {
+      return _player.canBuildShip();
     }
 
     @Override
